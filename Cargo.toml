@@ -1,0 +1,6 @@
+[package]
+name = "expense_tracker"
+version = "0.1.0"
+authors = ["pdmxdd <pdmxdd@gmail.com>"]
+
+[dependencies]
