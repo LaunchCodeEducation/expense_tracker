@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en" dir="ltr">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ title }}</title>
+        <!-- currently loading foundations from a CDN will need to change later -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/foundation/6.2.4/foundation.min.css">
+        <!-- having some problems loading from web server, will come back to later -->
+        <!--
+        <link rel="stylesheet" type="text/css" href="css/foundation.css">
+        <link rel="stylesheet" type="text/css" href="css/app.css">
+        -->
+    </head>
+    <body>
+        <h1>Index</h1>
+        <div class="row">
+            <div class="small-6 columns">
+            6
+            </div>
+            <div class="small-6 columns">
+            6
+            </div>
+        </div>
+        <input type="button" />
+
+
+
+
+        <script src="js/vendor/jquery.js"></script>
+        <script src="js/vendor/what-input.js"></script>
+        <script src="js/vendor/foundation.js"></script>
+        <script src="js/app.js"></script>
+    </body>
+</html>
