@@ -22,8 +22,10 @@
             <div class="top-bar-left">
                 <ul class="menu">
                     <li class="menu-text">{{ title }}</li>
+                    {% if authenticated %}
                     <li><a href="">Expense</a></li>
                     <li><a href="">Category</a></li>
+                    {% endif %}
                 </ul>
             </div>
             <div class="top-bar-right">
@@ -34,19 +36,24 @@
                         what they see
                     -->
                     <!-- if not logged in -->
+                    {% if not authenticated %}
                     <li><a href="/register">Register</a></li>
                     <li><a href="/login">Login</a></li>
+                    {% else %}
                     <!-- if logged in -->
                     <li><a href="/logout">Logout</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
         <br />
         {% block body_content %}
         {% endblock body_content %}
+        <!--
         <script src="js/vendor/jquery.js"></script>
         <script src="js/vendor/what-input.js"></script>
         <script src="js/vendor/foundation.js"></script>
         <script src="js/app.js"></script>
+        -->
     </body>
 </html>

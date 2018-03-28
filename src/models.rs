@@ -1,6 +1,6 @@
-use super::schema::users;
-use super::schema::categories;
-use super::schema::expenses;
+use schema::users;
+use schema::categories;
+use schema::expenses;
 
 #[derive(Queryable)]
 pub struct User {
