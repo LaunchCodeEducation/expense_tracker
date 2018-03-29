@@ -11,8 +11,8 @@ extern crate diesel;
 extern crate dotenv;
 
 use rocket_contrib::Template;
-use rocket::response::NamedFile;
-use rocket::request::Form;
+use rocket::response::{NamedFile, Flash, Redirect};
+use rocket::request::{Form, FlashMessage};
 use rocket::http::{Cookie, Cookies};
 //use rocket::Redirect;
 
@@ -75,7 +75,9 @@ REGISTER CONTEXTS & FORMS
 #[derive(Serialize)]
 struct RegisterContext {
     title: String,
-    authenticated: bool
+    authenticated: bool,
+    flash_class: String,
+    flash_msg: String,
 }
 
 #[derive(FromForm)]
@@ -100,16 +102,42 @@ fn logged_in(mut cookies: Cookies) -> bool {
 REGISTER GET AND POST
 */
 #[get("/register")]
-fn register_get(mut cookies: Cookies) -> Template {    
+fn register_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+    //TODO: Make the next 13 lines of code into a function that can be reused
+    // Access the flash message result so it can be added to the context
+    let mut flash_message = String::new();
+    // Unwrap result or else return a string that looks like: "no class&no flash message"
+    flash_message = flash.map(|msg| format!("{}&{}", msg.name().to_string(), msg.msg().to_string()))
+        .unwrap_or_else(|| "no class&No flash message".to_string());
+    // Split the flash message into a flash message like: "User logged in" and a flash class like: "success"
+    let string_split_position = flash_message.find('&');
+    let flash_message_split = flash_message.split_at(string_split_position.unwrap_or_else(|| 0));
+    let flash_message = flash_message_split.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_type = flash_message_split.0;
+
+    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
+    let mut flash_class = String::new();
+    if flash_type == "success".to_string() {
+        flash_class = "success".to_string();
+    }
+    else {
+        flash_class = "alert".to_string();
+    }
+    
+    // Create context that is passed to Tera Template
     let context = RegisterContext {
         title: String::from("Register"),
         authenticated: logged_in(cookies),
+        flash_class: flash_class.to_string(),
+        flash_msg: flash_message.to_string(),
     };
+
+    // Render our register Tera Template, and pass it the context
     Template::render("register", &context)
 }
 
 #[post("/register", data = "<registerform>")]
-fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> String {
+fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
 
     // Get the form in a Rust useable format
     let register_form = &registerform.get();
@@ -132,34 +160,43 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Stri
         let conn = establish_connection();
 
         let current_user = get_user_by_email(&email_input);
-        println!("here");
         if current_user.email != "" {
-            message = format!("{} already exists. Please login.", current_user.email);
+            println!("Redirect to /register msg=An account with email already exists...");
+            //DONE: Return a Flash Redirect
+            return Err(Flash::error(
+                    Redirect::to("/register"),
+                    format!("An account with email: {} already exists. Please login, or register with a new email address.", current_user.email)
+                    ));
+            //format!("{} already exists. Please login.", current_user.email));
+            //message = format!("{} already exists. Please login.", current_user.email);
         }
         else {
             //Add user to DB
             create_user(&conn, &email_input.to_string(), &password_input.to_string());
         
-            //TODO: get user_id from the newly created user, and store it in a private_cookie DONE
+            //DONE: get user_id from the newly created user, and store it in a private_cookie
             let current_user = get_user_by_email(&email_input);
             println!("Current User:\nid: {}\nemail: {}", current_user.id, current_user.email);
             cookies.add_private(Cookie::new("user_id", current_user.id.to_string()));
 
             //Create message indicating success
-            message = format!("{} added as a new user", &email_input);
+            println!("Redirect to /register msg=User logged in");
+            //DONE: Return a Flash Redirect
+            let msg = Flash::success(Redirect::to("/register"), format!("{} logged in", current_user.email));
+            return Ok(msg)
+            //message = format!("{} added as a new user", &email_input);
         }
 
         
     }
     else {
         //Create message indicating the passwords don't match
-        message = format!("PASSWORDS DON'T MATCH!");
+        println!("Redirect to /register msg=Passwords don't match");
+        //DONE: Return a Flash Redirect
+        return Err(Flash::error(Redirect::to("/register"), "Passwords don't match"));
+        //message = format!("PASSWORDS DON'T MATCH!");
     }
-    //TODO: Return a Redirect
-    //TODO: Implement Flash messaging
 
-    //Return the message, to be printed to the user
-    return message
 }
 fn get_id_from_string(string_id: String) -> String {
     let temp = string_id.split_at(8).1;
@@ -183,7 +220,9 @@ LOGIN CONTEXT & FORMS
 #[derive(Serialize)]
 struct LoginContext {
     title: String,
-    authenticated: bool
+    authenticated: bool,
+    flash_class: String,
+    flash_msg: String,
 }
 
 #[derive(FromForm)]
@@ -196,28 +235,53 @@ struct LoginForm {
 LOGIN GET AND POST
 */
 #[get("/login")]
-fn login_get(mut cookies: Cookies) -> Template {
+fn login_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+    //TODO: Make the next 13 lines of code into a function that can be reused
+    // Access the flash message result so it can be added to the context
+    let mut flash_message = String::new();
+    // Unwrap result or else return a string that looks like: "no class&no flash message"
+    flash_message = flash.map(|msg| format!("{}&{}", msg.name().to_string(), msg.msg().to_string()))
+        .unwrap_or_else(|| "no class&No flash message".to_string());
+    // Split the flash message into a flash message like: "User logged in" and a flash class like: "success"
+    let string_split_position = flash_message.find('&');
+    let flash_message_split = flash_message.split_at(string_split_position.unwrap_or_else(|| 0));
+    let flash_message = flash_message_split.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_type = flash_message_split.0;
+
+    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
+    let mut flash_class = String::new();
+    if flash_type == "success".to_string() {
+        flash_class = "success".to_string();
+    }
+    else {
+        flash_class = "alert".to_string();
+    }
+
+    // Create context that is passed to Tera Template
     let context = LoginContext {
         title: String::from("Login"),
         authenticated: logged_in(cookies),
+        flash_class: flash_class.to_string(),
+        flash_msg: flash_message.to_string(),
     };
+
+    // Render our login Tera Template, and pass it the context
     Template::render("login", &context)
 }
 
 #[post("/login", data = "<loginform>")]
-fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> String {
-    //TODO: Implement Flash messaging
-    
-    
+fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
     let login_form = &loginform.get();
     let email_input = login_form.email.to_string();
     let password_input = login_form.password.to_string();
     let user = get_user_by_email(&email_input);
     let mut message = String::new();
-    //TODO: Compare user, and password to DB records DONE
+    //DONE: Compare user, and password to DB records
     if user.email == "" {
         //user doesn't exist in DB
         message = String::from("Email, or Password incorrect");
+        //DONE: Return a Flash Redirect
+        return Err(Flash::error(Redirect::to("/login"), message));
     }
     else {
         if user.password == password_input {
@@ -225,27 +289,30 @@ fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> String {
             message = format!("{} logged in", user.email);
             cookies.remove_private(Cookie::named("user_id"));
             cookies.add_private(Cookie::new("user_id", user.id.to_string()));
+            //DONE: Return a Flash Redirect
+            return Ok(Flash::success(Redirect::to("/login"), message));
         }
         else {
             //user exists, but password doesn't match
             message = String::from("Email, or Password incorrect");
+            //DONE: Return a Flash Redirect
+            return Err(Flash::error(Redirect::to("/login"), message));
         }
     }
-    //TODO: Return a Redirect not a string
-    message
 }
 
 /*
 LOGOUT GET
 */
 #[get("/logout")]
-fn logout_get(mut cookies: Cookies) -> String {
+fn logout_get(mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
     cookies.remove_private(Cookie::named("user_id"));
-    String::from("USER ID COOKIE REMOVED")
+    return Ok(Flash::success(Redirect::to("/login"), "Successfully logged out".to_string()));
 }
 
 /*
 FOUNDATION CSS, and JS REQUESTS
+DEPRECATED BECAUSE WE ARE USING A CDN
 */
 #[get("/<file..>")]
 fn files(file: PathBuf) -> Option<NamedFile> {
