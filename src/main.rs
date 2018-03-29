@@ -23,7 +23,7 @@ use std::string::String;
 mod db_manager;
 use db_manager::create_user;
 use db_manager::establish_connection;
-use db_manager::get_user_by_email;
+use db_manager::{get_user_by_email, get_user_by_id};
 use db_manager::models::User;
 
 
@@ -98,12 +98,25 @@ fn logged_in(mut cookies: Cookies) -> bool {
     
 }
 
+fn get_user_id_from_cookie(mut cookies: Cookies) -> String {
+    if cookies.get_private("user_id").is_none() {
+        return "-1".to_string();
+    }
+    else {
+        let cooks = cookies.get_private("user_id")
+            .map(|c| format!("{}", c.value()))
+            .unwrap_or_else(|| "-1".to_string());
+
+        return cooks.to_string();
+    }
+    
+}
+
 /*
 REGISTER GET AND POST
 */
-#[get("/register")]
-fn register_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
-    //TODO: Make the next 13 lines of code into a function that can be reused
+
+fn flash_message_breakdown(flash: Option<FlashMessage>) -> (String, String) {
     // Access the flash message result so it can be added to the context
     let mut flash_message = String::new();
     // Unwrap result or else return a string that looks like: "no class&no flash message"
@@ -112,8 +125,17 @@ fn register_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
     // Split the flash message into a flash message like: "User logged in" and a flash class like: "success"
     let string_split_position = flash_message.find('&');
     let flash_message_split = flash_message.split_at(string_split_position.unwrap_or_else(|| 0));
-    let flash_message = flash_message_split.1.get(1..).unwrap_or_else(|| "no class");
-    let flash_type = flash_message_split.0;
+
+    let message = (flash_message_split.0.to_string(), flash_message_split.1.to_string());
+    return message;
+}
+
+#[get("/register")]
+fn register_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+    //DONE: Make flash_message_breakdown function
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_type = message.0;
 
     // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
     let mut flash_class = String::new();
@@ -236,17 +258,10 @@ LOGIN GET AND POST
 */
 #[get("/login")]
 fn login_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
-    //TODO: Make the next 13 lines of code into a function that can be reused
-    // Access the flash message result so it can be added to the context
-    let mut flash_message = String::new();
-    // Unwrap result or else return a string that looks like: "no class&no flash message"
-    flash_message = flash.map(|msg| format!("{}&{}", msg.name().to_string(), msg.msg().to_string()))
-        .unwrap_or_else(|| "no class&No flash message".to_string());
-    // Split the flash message into a flash message like: "User logged in" and a flash class like: "success"
-    let string_split_position = flash_message.find('&');
-    let flash_message_split = flash_message.split_at(string_split_position.unwrap_or_else(|| 0));
-    let flash_message = flash_message_split.1.get(1..).unwrap_or_else(|| "no class");
-    let flash_type = flash_message_split.0;
+    //DONE: Make flash_message_breakdown function
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_type = message.0;
 
     // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
     let mut flash_class = String::new();
@@ -290,7 +305,7 @@ fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<
             cookies.remove_private(Cookie::named("user_id"));
             cookies.add_private(Cookie::new("user_id", user.id.to_string()));
             //DONE: Return a Flash Redirect
-            return Ok(Flash::success(Redirect::to("/login"), message));
+            return Ok(Flash::success(Redirect::to("/home"), message));
         }
         else {
             //user exists, but password doesn't match
@@ -311,6 +326,48 @@ fn logout_get(mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> 
 }
 
 /*
+WELCOME/HOME CONTEXT
+*/
+#[derive(Serialize)]
+struct HomeContext {
+    title: String,
+    authenticated: bool,
+    flash_class: String,
+    flash_msg: String,
+    user_email: String,
+}
+
+/*
+WELCOME/HOME GET
+*/
+#[get("/home")]
+fn home_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_type = message.0;
+
+    let mut auth = false;
+
+    let str_user_id = get_user_id_from_cookie(cookies);
+    if str_user_id != "-1".to_string() {
+        auth = true;
+    }
+    let int_user_id: i32 = str_user_id.trim().parse().expect("Not a number");
+    let current_user = get_user_by_id(&int_user_id);
+
+    let context = HomeContext {
+        title: "Home".to_string(),
+        authenticated: auth,
+        flash_class: flash_type.to_string(),
+        flash_msg: flash_message.to_string(),
+        user_email: current_user.email,
+    };
+
+    return Template::render("home", &context);
+}
+
+
+/*
 FOUNDATION CSS, and JS REQUESTS
 DEPRECATED BECAUSE WE ARE USING A CDN
 */
@@ -328,6 +385,7 @@ fn rocket() -> rocket::Rocket {
         login_post,
         files,
         logout_get,
+        home_get,
     ])
     .attach(Template::fairing())
 }
