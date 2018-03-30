@@ -204,7 +204,7 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
             //Create message indicating success
             println!("Redirect to /register msg=User logged in");
             //DONE: Return a Flash Redirect
-            let msg = Flash::success(Redirect::to("/register"), format!("{} logged in", current_user.email));
+            let msg = Flash::success(Redirect::to("/home"), format!("{} logged in", current_user.email));
             return Ok(msg)
             //message = format!("{} added as a new user", &email_input);
         }
