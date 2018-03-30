@@ -16,15 +16,11 @@ use rocket::request::{Form, FlashMessage};
 use rocket::http::{Cookie, Cookies};
 //use rocket::Redirect;
 
-use std::path::PathBuf;
-use std::path::Path;
 use std::string::String;
 
 mod db_manager;
-use db_manager::create_user;
-use db_manager::establish_connection;
-use db_manager::{get_user_by_email, get_user_by_id};
 use db_manager::models::User;
+use db_manager::{establish_connection, create_user, get_user_by_email, get_user_by_id};
 
 
 //GET USER ID FROM cookies
@@ -46,26 +42,17 @@ Since Rust is statically typed, and compiled
 we have to define a Form for each POST route.
 */
 
-
-/*
-INDEX CONTEXTS
-*/
-#[derive(Serialize)]
-struct IndexContext {
-    title: String,
-    authenticated: bool
-}
-
 /*
 INDEX GET AND POST
 */
 #[get("/")]
-fn index_get(mut cookies: Cookies) -> Template {
-    let context = IndexContext {
-        title: String::from("Index"),
-        authenticated: logged_in(cookies),
-    };
-    Template::render("index", &context)
+fn index_get(mut cookies: Cookies) -> Redirect {
+    if logged_in(cookies) {
+        return Redirect::to("/home");
+    }
+    else {
+        return Redirect::to("/login");
+    }
 }
 
 
@@ -183,7 +170,6 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
 
         let current_user = get_user_by_email(&email_input);
         if current_user.email != "" {
-            println!("Redirect to /register msg=An account with email already exists...");
             //DONE: Return a Flash Redirect
             return Err(Flash::error(
                     Redirect::to("/register"),
@@ -198,11 +184,9 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
         
             //DONE: get user_id from the newly created user, and store it in a private_cookie
             let current_user = get_user_by_email(&email_input);
-            println!("Current User:\nid: {}\nemail: {}", current_user.id, current_user.email);
             cookies.add_private(Cookie::new("user_id", current_user.id.to_string()));
 
             //Create message indicating success
-            println!("Redirect to /register msg=User logged in");
             //DONE: Return a Flash Redirect
             let msg = Flash::success(Redirect::to("/home"), format!("{} logged in", current_user.email));
             return Ok(msg)
@@ -213,7 +197,6 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
     }
     else {
         //Create message indicating the passwords don't match
-        println!("Redirect to /register msg=Passwords don't match");
         //DONE: Return a Flash Redirect
         return Err(Flash::error(Redirect::to("/register"), "Passwords don't match"));
         //message = format!("PASSWORDS DON'T MATCH!");
@@ -366,16 +349,6 @@ fn home_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
     return Template::render("home", &context);
 }
 
-
-/*
-FOUNDATION CSS, and JS REQUESTS
-DEPRECATED BECAUSE WE ARE USING A CDN
-*/
-#[get("/<file..>")]
-fn files(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(file)).ok()
-}
-
 fn rocket() -> rocket::Rocket {
     rocket::ignite().mount("/", routes![
         index_get,
@@ -383,7 +356,6 @@ fn rocket() -> rocket::Rocket {
         register_post,
         login_get,
         login_post,
-        files,
         logout_get,
         home_get,
     ])
