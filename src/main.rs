@@ -9,12 +9,14 @@ extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
+extern crate bcrypt;
+
+use bcrypt::{hash, verify};
 
 use rocket_contrib::Template;
 use rocket::response::{NamedFile, Flash, Redirect};
 use rocket::request::{Form, FlashMessage};
 use rocket::http::{Cookie, Cookies};
-//use rocket::Redirect;
 
 use std::string::String;
 
@@ -180,7 +182,8 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
         }
         else {
             //Add user to DB
-            create_user(&conn, &email_input.to_string(), &password_input.to_string());
+            let hashed = hash(&password_input.to_string(), 7);
+            create_user(&conn, &email_input.to_string(), &hashed.expect("error"));
         
             //DONE: get user_id from the newly created user, and store it in a private_cookie
             let current_user = get_user_by_email(&email_input);
@@ -271,7 +274,7 @@ fn login_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
 fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
     let login_form = &loginform.get();
     let email_input = login_form.email.to_string();
-    let password_input = login_form.password.to_string();
+    //let password_input = hash(&login_form.password[..], 7).expect("error");
     let user = get_user_by_email(&email_input);
     let mut message = String::new();
     //DONE: Compare user, and password to DB records
@@ -282,7 +285,9 @@ fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<
         return Err(Flash::error(Redirect::to("/login"), message));
     }
     else {
-        if user.password == password_input {
+        //println!("user password: {}\nuser input:    {}\nlength: {}", user.password, password_input, user.password.len());
+        if verify(&login_form.password, &user.password).expect("error") {
+        //if user.password == password_input {
             //user exists, and password matches
             message = format!("{} logged in", user.email);
             cookies.remove_private(Cookie::named("user_id"));
