@@ -15,7 +15,7 @@
                 <span class="prefix">Password</span>
             </div>
             <div class="small-10 columns">
-                <input type="text" id="password" name="password" />
+                <input type="password" id="password" name="password" />
             </div>
         </div>
         <div class="row">
@@ -23,7 +23,7 @@
                 <span class="prefix">Confirm Password</span>
             </div>
             <div class="small-10 columns">
-                <input type="text" id="confirm_password" name="confirm_password" />
+                <input type="password" id="confirm_password" name="confirm_password" />
             </div>
         </div>
         <div class="row">
