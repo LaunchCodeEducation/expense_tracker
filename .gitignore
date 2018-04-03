@@ -8,3 +8,4 @@ cargo.lock
 /diesel_budget_manager/target/
 /diesel_budget_manager/.env
 /diesel_budget_manager/migrations
+/temp_folder
