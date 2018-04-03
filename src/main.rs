@@ -14,7 +14,7 @@ extern crate bcrypt;
 use bcrypt::{hash, verify};
 
 use rocket_contrib::Template;
-use rocket::response::{NamedFile, Flash, Redirect};
+use rocket::response::{Flash, Redirect};
 use rocket::request::{Form, FlashMessage};
 use rocket::http::{Cookie, Cookies};
 
@@ -22,10 +22,10 @@ use std::string::String;
 
 mod lib;
 
-//mod db_manager;
-use lib::models::user::User;
-use lib::db_manager::{establish_connection, create_user, get_user_by_email, get_user_by_id};
 
+//use lib::models::user::User;
+//use lib::db_manager::establish_connection;
+use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
 
 //GET USER ID FROM cookies
 
@@ -50,7 +50,7 @@ we have to define a Form for each POST route.
 INDEX GET AND POST
 */
 #[get("/")]
-fn index_get(mut cookies: Cookies) -> Redirect {
+fn index_get(cookies: Cookies) -> Redirect {
     if logged_in(cookies) {
         return Redirect::to("/home");
     }
@@ -79,7 +79,7 @@ struct RegisterForm {
 }
 
 fn logged_in(mut cookies: Cookies) -> bool {
-    let cooks = cookies.get_private("user_id").is_none();
+    //let cooks = cookies.get_private("user_id").is_none();
     if cookies.get_private("user_id").is_none() {
         return false
     }
@@ -122,7 +122,7 @@ fn flash_message_breakdown(flash: Option<FlashMessage>) -> (String, String) {
 }
 
 #[get("/register")]
-fn register_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+fn register_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     //DONE: Make flash_message_breakdown function
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
@@ -165,12 +165,10 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
     let password_confirm = register_form.confirm_password.to_string();
 
     // Create new mutable empty string in message to display to user
-    let mut message = String::new();
+    //let mut messagelet mut message = String::new();
     
     // Check if the passwords match each other
     if &password_input == &password_confirm {
-        // Establish connection to the DB
-        let conn = establish_connection();
 
         let current_user = get_user_by_email(&email_input);
         if current_user.email != "" {
@@ -185,7 +183,7 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
         else {
             //Add user to DB
             let hashed = hash(&password_input.to_string(), 7);
-            create_user(&conn, &email_input.to_string(), &hashed.expect("error"));
+            create_user(&email_input.to_string(), &hashed.expect("error"));
         
             //DONE: get user_id from the newly created user, and store it in a private_cookie
             let current_user = get_user_by_email(&email_input);
@@ -208,7 +206,7 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
     }
 
 }
-fn get_id_from_string(string_id: String) -> String {
+/* fn get_id_from_string(string_id: String) -> String {
     let temp = string_id.split_at(8).1;
     let mut id = String::new();
     for letter in temp.chars() {
@@ -220,8 +218,7 @@ fn get_id_from_string(string_id: String) -> String {
         }
     }
     return id
-
-}
+} */
 
 
 /*
@@ -245,7 +242,7 @@ struct LoginForm {
 LOGIN GET AND POST
 */
 #[get("/login")]
-fn login_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+fn login_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     //DONE: Make flash_message_breakdown function
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
@@ -331,7 +328,7 @@ struct HomeContext {
 WELCOME/HOME GET
 */
 #[get("/home")]
-fn home_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+fn home_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
     let flash_type = message.0;
