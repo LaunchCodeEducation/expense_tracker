@@ -1,88 +1,15 @@
-//#[macro_use]
-//extern crate diesel;
-//extern crate dotenv;
-
-//pub mod db_manager::schema;
-//pub mod self::models;
-
-mod schema {
-    table! {
-    categories (id) {
-        id -> Int4,
-        user_id -> Int4,
-        name -> Varchar,
-        descrip -> Varchar,
-    }
-}
-
-table! {
-    expenses (id) {
-        id -> Int4,
-        user_id -> Int4,
-        category_id -> Int4,
-        amount -> Numeric,
-    }
-}
-
-table! {
-    users (id) {
-        id -> Int4,
-        email -> Varchar,
-        password -> Varchar,
-    }
-}
-
-joinable!(categories -> users (user_id));
-joinable!(expenses -> categories (category_id));
-joinable!(expenses -> users (user_id));
-
-allow_tables_to_appear_in_same_query!(
-    categories,
-    expenses,
-    users,
-);
-}
-
-pub mod models {
-    use db_manager::schema::users;
-    use db_manager::schema::categories;
-    use db_manager::schema::expenses;
-
-    #[derive(Queryable)]
-    pub struct User {
-        pub id: i32,
-        pub email: String,
-        pub password: String,
-    }
-
-    #[derive(Insertable)]
-    #[table_name="users"]
-    pub struct NewUser<'a> {
-        pub email: &'a str,
-        pub password: &'a str,
-    }
-
-    pub struct Category {
-        pub id: i32,
-        pub user_id: i32,
-        pub name: String,
-        pub descrip: String,
-    }
-
-    pub struct Expense {
-        pub id: i32,
-        pub user_id: i32,
-        pub category_id: i32,
-        pub amount: f32,
-    }
-}
-
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
+use diesel::insert_into;
 use dotenv::dotenv;
 use std::env;
 
-use db_manager::models::{User, NewUser};
+//extern crate schema;
+//extern crate models;
+
+use super::models::user::{User, NewUser};
+
+//use models::user::{User, NewUser};
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -95,21 +22,21 @@ pub fn establish_connection() -> PgConnection {
 }
 
 pub fn create_user<'a>(conn: &PgConnection, email: &'a str, password: &'a str) -> User {
-    use db_manager::schema::users;
+    use lib::schema::users;
 
     let new_user = NewUser {
         email: email,
         password: password,
     };
 
-    super::diesel::insert_into(users::table)
+    insert_into(users::table)
         .values(&new_user)
         .get_result(conn)
         .expect("Error saving new post")
 }
 
 pub fn get_user_by_email<'a>(input_email: &'a str) -> User {
-    use db_manager::schema::users::dsl::*;
+    use lib::schema::users::dsl::*;
 
     //This function returns a User struct based on an email address
     //It also returns an emtpy User object if it's not found
@@ -147,9 +74,9 @@ pub fn get_user_by_email<'a>(input_email: &'a str) -> User {
 }
 
 pub fn get_user_by_id<'a>(input_id: &'a i32) -> User {
-    use db_manager::schema::users::dsl::*;
+    use lib::schema::users::dsl::*;
 
-    let mut user:User = User {
+    let mut user: User = User {
         id: -1,
         email: String::from(""),
         password: String::from("")

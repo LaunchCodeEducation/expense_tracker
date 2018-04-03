@@ -20,9 +20,11 @@ use rocket::http::{Cookie, Cookies};
 
 use std::string::String;
 
-mod db_manager;
-use db_manager::models::User;
-use db_manager::{establish_connection, create_user, get_user_by_email, get_user_by_id};
+mod lib;
+
+//mod db_manager;
+use lib::models::user::User;
+use lib::db_manager::{establish_connection, create_user, get_user_by_email, get_user_by_id};
 
 
 //GET USER ID FROM cookies
