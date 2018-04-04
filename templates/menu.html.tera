@@ -17,7 +17,7 @@
                     <li class="menu-text">{{ title }}</li>
                     {% if authenticated %}
                     <li><a href="">Expense</a></li>
-                    <li><a href="">Category</a></li>
+                    <li><a href="/category">Category</a></li>
                     {% endif %}
                 </ul>
             </div>

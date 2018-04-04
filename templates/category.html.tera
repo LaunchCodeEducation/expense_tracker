@@ -1,0 +1,38 @@
+{% extends "menu" %}
+
+{% block body_content %}
+    <h1>Categories</h1>
+    <!-- TODO: Add new category form here -->
+    <form action='/category' method="POST">
+        <div class="row">
+            <div class="small-2 columns">
+                <span class="prefix">Category Name</span>
+            </div>
+            <div class="small-10 columns">
+                <input type="text" id="name" name="name" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="small-2 columns">
+                <span class="prefix">Category Description</span>
+            </div>
+            <div class="small-10 columns">
+                <input type="text" id="descrip" name="descrip" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="small-2 column">
+            </div>
+            <div class="small-10 column">
+                <input class="button" type="submit" value="Add Category" />
+            </div>
+        </div>
+    </form>
+    <!-- TODO: load categories in an ul here -->
+    <h3>Current Categories</h3>
+    <ul>
+        {% for category in categories %}
+        <li>{{ category }}</li>
+        {% endfor %}
+    </ul>
+{% endblock body_content %}

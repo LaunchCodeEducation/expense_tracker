@@ -18,7 +18,7 @@ pub fn create_user<'a>(email: &'a str, password: &'a str) -> User {
     insert_into(users::table)
         .values(&new_user)
         .get_result(&conn)
-        .expect("Error saving new post")
+        .expect("Error saving user")
 }
 
 //READ USER (by email)

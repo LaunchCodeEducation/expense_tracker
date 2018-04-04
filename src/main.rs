@@ -21,11 +21,9 @@ use rocket::http::{Cookie, Cookies};
 use std::string::String;
 
 mod lib;
-
-
-//use lib::models::user::User;
-//use lib::db_manager::establish_connection;
+use lib::models::category::Category;
 use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
+use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id};
 
 //GET USER ID FROM cookies
 
@@ -89,7 +87,7 @@ fn logged_in(mut cookies: Cookies) -> bool {
     
 }
 
-fn get_user_id_from_cookie(mut cookies: Cookies) -> String {
+fn get_user_id_from_cookies(mut cookies: Cookies) -> String {
     if cookies.get_private("user_id").is_none() {
         return "-1".to_string();
     }
@@ -109,7 +107,7 @@ REGISTER GET AND POST
 
 fn flash_message_breakdown(flash: Option<FlashMessage>) -> (String, String) {
     // Access the flash message result so it can be added to the context
-    let mut flash_message = String::new();
+    let flash_message: String;
     // Unwrap result or else return a string that looks like: "no class&no flash message"
     flash_message = flash.map(|msg| format!("{}&{}", msg.name().to_string(), msg.msg().to_string()))
         .unwrap_or_else(|| "no class&No flash message".to_string());
@@ -129,7 +127,7 @@ fn register_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     let flash_type = message.0;
 
     // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
-    let mut flash_class = String::new();
+    let flash_class: String;
     if flash_type == "success".to_string() {
         flash_class = "success".to_string();
     }
@@ -249,7 +247,7 @@ fn login_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     let flash_type = message.0;
 
     // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
-    let mut flash_class = String::new();
+    let flash_class: String;
     if flash_type == "success".to_string() {
         flash_class = "success".to_string();
     }
@@ -275,7 +273,7 @@ fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<
     let email_input = login_form.email.to_string();
     //let password_input = hash(&login_form.password[..], 7).expect("error");
     let user = get_user_by_email(&email_input);
-    let mut message = String::new();
+    let message: String;
     //DONE: Compare user, and password to DB records
     if user.email == "" {
         //user doesn't exist in DB
@@ -300,6 +298,95 @@ fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<
             //DONE: Return a Flash Redirect
             return Err(Flash::error(Redirect::to("/login"), message));
         }
+    }
+}
+/*
+CATEGORY CONTEXT & FORMS
+*/
+#[derive(Serialize)]
+struct CategoryContext {
+    title: String,
+    authenticated: bool,
+    flash_class: String,
+    flash_msg: String,
+    //DONE: Add categories as a vector of Category objects
+    //Serialize doesn't recognize Vectors of Categories, so I had to pass a vector of strings
+    categories: Vec<String>,
+}
+
+#[derive(FromForm)]
+struct CategoryForm {
+    name: String,
+    descrip: String,
+}
+
+/*
+CATEGORY GET AND POST
+*/
+#[get("/category")]
+fn category_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_type = message.0;
+
+    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
+    let flash_class: String;
+    if flash_type == "success".to_string() {
+        flash_class = "success".to_string();
+    }
+    else {
+        flash_class = "alert".to_string();
+    }
+
+    //DONE: Get user categories and pass them as a vector to the CategoryContext
+    let str_user_id = cookies.get_private("user_id")
+        .map(|c| format!("{}", c.value()))
+        .unwrap_or_else(|| "-1".to_string());
+    let int_user_id: i32 = str_user_id.parse().expect("Not a number");
+    let user_categories: Vec<Category> = get_categories_by_user_id(&int_user_id);
+    let mut str_user_categories: Vec<String> = Vec::new();
+    if user_categories.len() == 0 {
+        str_user_categories.push("No categories yet! Please add one.".to_string());
+    }
+    else {
+        for category in user_categories {
+            str_user_categories.push(format!("{}", category.name));
+        }
+    }
+    
+
+    let context = CategoryContext {
+        title: String::from("Categories"),
+        authenticated: str_user_id != "-1",
+        flash_class: flash_class.to_string(),
+        flash_msg: flash_message.to_string(),
+        categories: str_user_categories,
+    };
+
+    return Template::render("category", &context);
+
+}
+
+#[post("/category", data = "<categoryform>")]
+fn category_post(categoryform: Form<CategoryForm>, cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let category_form = &categoryform.get();
+    let category_name = category_form.name.to_string();
+    let category_descrip = category_form.descrip.to_string();
+    let message: String;
+
+    if category_name == "".to_string() {
+        return Err(Flash::error(Redirect::to("/category"), "Category name cannot be blank".to_string()))
+    }
+    else if category_descrip == "".to_string() {
+        return Err(Flash::error(Redirect::to("/category"), "Category description cannot be blank".to_string()))
+    }
+    else {
+        //DONE: get user id, create new Category in the database using user_id, category_name, & category_descrip
+        let str_user_id = get_user_id_from_cookies(cookies);
+        let int_user_id: i32 = str_user_id.parse().expect("Not a number");
+        create_category(&int_user_id, &category_name, &category_descrip);
+        
+        return Ok(Flash::success(Redirect::to("/category"), "Category successfully added".to_string()))
     }
 }
 
@@ -335,7 +422,7 @@ fn home_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
 
     let mut auth = false;
 
-    let str_user_id = get_user_id_from_cookie(cookies);
+    let str_user_id = get_user_id_from_cookies(cookies);
     if str_user_id != "-1".to_string() {
         auth = true;
     }
@@ -362,6 +449,8 @@ fn rocket() -> rocket::Rocket {
         login_post,
         logout_get,
         home_get,
+        category_get,
+        category_post,
     ])
     .attach(Template::fairing())
 }
