@@ -15,8 +15,10 @@ use bcrypt::{hash, verify};
 
 use rocket_contrib::Template;
 use rocket::response::{Flash, Redirect};
-use rocket::request::{Form, FlashMessage};
+use rocket::request::{self, Form, FlashMessage, Request, FromRequest};
 use rocket::http::{Cookie, Cookies};
+use rocket::Outcome;
+
 
 use std::string::String;
 
@@ -47,14 +49,14 @@ we have to define a Form for each POST route.
 /*
 INDEX GET AND POST
 */
-#[get("/")]
-fn index_get(cookies: Cookies) -> Redirect {
-    if logged_in(cookies) {
-        return Redirect::to("/home");
-    }
-    else {
-        return Redirect::to("/login");
-    }
+#[get("/", rank = 1)]
+fn index_get(_user_id_struct: IsUser) -> Redirect {
+    return Redirect::to("/home");
+}
+
+#[get("/", rank = 2)]
+fn index_get_nonuser() -> Redirect {
+    return Redirect::to("/login");
 }
 
 
@@ -77,6 +79,8 @@ struct RegisterForm {
 }
 
 fn logged_in(mut cookies: Cookies) -> bool {
+    //DONE: Remove this function, and simply get the user_id_from_cookies each function and if the user_id is -1, the user isn't logged in
+    //DONE: Every GET, and POST should check if the user is logged in, and if not redirect them to the login page, right now you can kind of squeak past this by already having a cookie in memory, or hard coding a URL in to the address bar
     //let cooks = cookies.get_private("user_id").is_none();
     if cookies.get_private("user_id").is_none() {
         return false
@@ -119,8 +123,13 @@ fn flash_message_breakdown(flash: Option<FlashMessage>) -> (String, String) {
     return message;
 }
 
-#[get("/register")]
-fn register_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
+#[get("/register", rank = 1)]
+fn register_get(_user_id_struct: IsUser) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return Err(Flash::error(Redirect::to("/home"), "You are already logged in. Please log out to register a new account.".to_string()));
+}
+
+#[get("/register", rank = 2)]
+fn register_get_nonuser(flash: Option<FlashMessage>) -> Template {
     //DONE: Make flash_message_breakdown function
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
@@ -138,7 +147,7 @@ fn register_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     // Create context that is passed to Tera Template
     let context = RegisterContext {
         title: String::from("Register"),
-        authenticated: logged_in(cookies),
+        authenticated: false,
         flash_class: flash_class.to_string(),
         flash_msg: flash_message.to_string(),
     };
@@ -204,20 +213,6 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
     }
 
 }
-/* fn get_id_from_string(string_id: String) -> String {
-    let temp = string_id.split_at(8).1;
-    let mut id = String::new();
-    for letter in temp.chars() {
-        if letter.to_string() == ";" {
-            break;
-        }
-        else {
-            id.push(letter);
-        }
-    }
-    return id
-} */
-
 
 /*
 LOGIN CONTEXT & FORMS
@@ -239,8 +234,13 @@ struct LoginForm {
 /*
 LOGIN GET AND POST
 */
-#[get("/login")]
-fn login_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
+#[get("/login", rank = 1)]
+fn login_get(_user_id_struct: IsUser) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return Err(Flash::error(Redirect::to("/home"), "You are already logged in. Please log out to log into another account.".to_string()));
+}
+//
+#[get("/login", rank = 2)]
+fn login_get_nonuser(flash: Option<FlashMessage>) -> Template {
     //DONE: Make flash_message_breakdown function
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
@@ -258,7 +258,7 @@ fn login_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     // Create context that is passed to Tera Template
     let context = LoginContext {
         title: String::from("Login"),
-        authenticated: logged_in(cookies),
+        authenticated: false,
         flash_class: flash_class.to_string(),
         flash_msg: flash_message.to_string(),
     };
@@ -323,8 +323,8 @@ struct CategoryForm {
 /*
 CATEGORY GET AND POST
 */
-#[get("/category")]
-fn category_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
+#[get("/category", rank = 1)]
+fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Template {
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
     let flash_type = message.0;
@@ -339,9 +339,10 @@ fn category_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
     }
 
     //DONE: Get user categories and pass them as a vector to the CategoryContext
-    let str_user_id = cookies.get_private("user_id")
-        .map(|c| format!("{}", c.value()))
-        .unwrap_or_else(|| "-1".to_string());
+    let str_user_id = str_user_struct.0;
+    //let str_user_id = cookies.get_private("user_id")
+    //    .map(|c| format!("{}", c.value()))
+    //    .unwrap_or_else(|| "-1".to_string());
     let int_user_id: i32 = str_user_id.parse().expect("Not a number");
     let user_categories: Vec<Category> = get_categories_by_user_id(&int_user_id);
     let mut str_user_categories: Vec<String> = Vec::new();
@@ -357,7 +358,7 @@ fn category_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
 
     let context = CategoryContext {
         title: String::from("Categories"),
-        authenticated: str_user_id != "-1",
+        authenticated: true,
         flash_class: flash_class.to_string(),
         flash_msg: flash_message.to_string(),
         categories: str_user_categories,
@@ -367,12 +368,16 @@ fn category_get(flash: Option<FlashMessage>, mut cookies: Cookies) -> Template {
 
 }
 
+#[get("/category", rank = 2)]
+fn category_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return Err(Flash::error(Redirect::to("/login"), "You must login to access that page".to_string()));
+}
+
 #[post("/category", data = "<categoryform>")]
 fn category_post(categoryform: Form<CategoryForm>, cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
     let category_form = &categoryform.get();
     let category_name = category_form.name.to_string();
     let category_descrip = category_form.descrip.to_string();
-    let message: String;
 
     if category_name == "".to_string() {
         return Err(Flash::error(Redirect::to("/category"), "Category name cannot be blank".to_string()))
@@ -414,24 +419,18 @@ struct HomeContext {
 /*
 WELCOME/HOME GET
 */
-#[get("/home")]
-fn home_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
+#[get("/home", rank = 1)]
+fn home_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
     let flash_type = message.0;
 
-    let mut auth = false;
-
-    let str_user_id = get_user_id_from_cookies(cookies);
-    if str_user_id != "-1".to_string() {
-        auth = true;
-    }
-    let int_user_id: i32 = str_user_id.trim().parse().expect("Not a number");
+    let int_user_id: i32 = user_id_struct.0.parse().expect("Not a number");
     let current_user = get_user_by_id(&int_user_id);
 
     let context = HomeContext {
         title: "Home".to_string(),
-        authenticated: auth,
+        authenticated: true,
         flash_class: flash_type.to_string(),
         flash_msg: flash_message.to_string(),
         user_email: current_user.email,
@@ -440,17 +439,58 @@ fn home_get(flash: Option<FlashMessage>, cookies: Cookies) -> Template {
     return Template::render("home", &context);
 }
 
+#[get("/home", rank = 2)]
+fn home_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return Err(Flash::error(Redirect::to("/login"), "You must login to access that page".to_string()));
+}
+
+struct IsUser(String);
+
+impl<'a, 'r> FromRequest<'a, 'r> for IsUser {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<IsUser, ()> {
+        if request.cookies().get_private("user_id").is_none() {
+            return Outcome::Forward(());
+        }
+        else {
+            let str_user_id = request.cookies().get_private("user_id")
+            .map(|c| format!("{}", c.value()))
+            .unwrap_or_else(|| "-1".to_string());
+            return Outcome::Success(IsUser(str_user_id))
+        }
+    }
+}
+
+#[get("/sensitive", rank = 1)]
+fn sensitive(user_id_struct: IsUser) -> &'static str {
+    println!("{}", user_id_struct.0);
+    "Sensitive data."
+}
+
+#[get("/sensitive", rank = 2)]
+fn sensitive_non_user() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return Err(Flash::error(Redirect::to("/login"), "You must login to access that page".to_string()));
+}
+
 fn rocket() -> rocket::Rocket {
     rocket::ignite().mount("/", routes![
         index_get,
+        index_get_nonuser,
         register_get,
+        register_get_nonuser,
         register_post,
         login_get,
+        login_get_nonuser,
         login_post,
         logout_get,
         home_get,
+        home_get_nonuser,
         category_get,
+        category_get_nonuser,
         category_post,
+        sensitive,
+        sensitive_non_user,
     ])
     .attach(Template::fairing())
 }
