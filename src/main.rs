@@ -78,6 +78,15 @@ struct RegisterForm {
     confirm_password: String,
 }
 
+fn not_logged_in(route: &str) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return Err(Flash::error(Redirect::to(route), "You need to login, or register!"));
+}
+
+fn improper_user_access(route: &str) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return Err(Flash::error(Redirect::to(route), "You are already logged in! Logout to login, or create a new account."));
+}
+
+//The following function is deprecated now that this project uses a request guard for users
 fn logged_in(mut cookies: Cookies) -> bool {
     //DONE: Remove this function, and simply get the user_id_from_cookies each function and if the user_id is -1, the user isn't logged in
     //DONE: Every GET, and POST should check if the user is logged in, and if not redirect them to the login page, right now you can kind of squeak past this by already having a cookie in memory, or hard coding a URL in to the address bar
@@ -91,6 +100,7 @@ fn logged_in(mut cookies: Cookies) -> bool {
     
 }
 
+//The following funciton is deprecated now that all GETS and POSTS are authenticated, and the user_id is passed as a struct
 fn get_user_id_from_cookies(mut cookies: Cookies) -> String {
     if cookies.get_private("user_id").is_none() {
         return "-1".to_string();
@@ -125,7 +135,7 @@ fn flash_message_breakdown(flash: Option<FlashMessage>) -> (String, String) {
 
 #[get("/register", rank = 1)]
 fn register_get(_user_id_struct: IsUser) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    return Err(Flash::error(Redirect::to("/home"), "You are already logged in. Please log out to register a new account.".to_string()));
+    return improper_user_access("/home");
 }
 
 #[get("/register", rank = 2)]
@@ -156,8 +166,13 @@ fn register_get_nonuser(flash: Option<FlashMessage>) -> Template {
     Template::render("register", &context)
 }
 
-#[post("/register", data = "<registerform>")]
-fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
+#[post("/register", rank = 1)]
+fn register_post(_user_id_struct: IsUser) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return improper_user_access("/home");
+}
+
+#[post("/register", rank = 2, data = "<registerform>")]
+fn register_post_nonuser(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
 
     // Get the form in a Rust useable format
     let register_form = &registerform.get();
@@ -198,7 +213,7 @@ fn register_post(registerform: Form<RegisterForm>, mut cookies: Cookies) -> Resu
 
             //Create message indicating success
             //DONE: Return a Flash Redirect
-            let msg = Flash::success(Redirect::to("/home"), format!("{} logged in", current_user.email));
+            let msg = Flash::success(Redirect::to("/home"), format!("Account created for: {}", current_user.email));
             return Ok(msg)
             //message = format!("{} added as a new user", &email_input);
         }
@@ -236,7 +251,7 @@ LOGIN GET AND POST
 */
 #[get("/login", rank = 1)]
 fn login_get(_user_id_struct: IsUser) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    return Err(Flash::error(Redirect::to("/home"), "You are already logged in. Please log out to log into another account.".to_string()));
+    return improper_user_access("/home");
 }
 //
 #[get("/login", rank = 2)]
@@ -267,8 +282,13 @@ fn login_get_nonuser(flash: Option<FlashMessage>) -> Template {
     Template::render("login", &context)
 }
 
-#[post("/login", data = "<loginform>")]
-fn login_post(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
+#[post("/login", rank = 1)]
+fn login_post(_user_id_struct: IsUser) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return improper_user_access("/home");
+}
+
+#[post("/login", rank = 2, data = "<loginform>")]
+fn login_post_nonuser(loginform: Form<LoginForm>, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
     let login_form = &loginform.get();
     let email_input = login_form.email.to_string();
     //let password_input = hash(&login_form.password[..], 7).expect("error");
@@ -340,7 +360,7 @@ fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Templat
 
     //DONE: Get user categories and pass them as a vector to the CategoryContext
     let str_user_id = str_user_struct.0;
-    //let str_user_id = cookies.get_private("user_id")
+
     //    .map(|c| format!("{}", c.value()))
     //    .unwrap_or_else(|| "-1".to_string());
     let int_user_id: i32 = str_user_id.parse().expect("Not a number");
@@ -370,11 +390,11 @@ fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Templat
 
 #[get("/category", rank = 2)]
 fn category_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
-    return Err(Flash::error(Redirect::to("/login"), "You must login to access that page".to_string()));
+    return not_logged_in("/login");
 }
 
-#[post("/category", data = "<categoryform>")]
-fn category_post(categoryform: Form<CategoryForm>, cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
+#[post("/category", rank = 1, data = "<categoryform>")]
+fn category_post(user_id_struct: IsUser, categoryform: Form<CategoryForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
     let category_form = &categoryform.get();
     let category_name = category_form.name.to_string();
     let category_descrip = category_form.descrip.to_string();
@@ -387,7 +407,8 @@ fn category_post(categoryform: Form<CategoryForm>, cookies: Cookies) -> Result<F
     }
     else {
         //DONE: get user id, create new Category in the database using user_id, category_name, & category_descrip
-        let str_user_id = get_user_id_from_cookies(cookies);
+        let str_user_id = user_id_struct.0;
+        //let str_user_id = get_user_id_from_cookies(cookies);
         let int_user_id: i32 = str_user_id.parse().expect("Not a number");
         create_category(&int_user_id, &category_name, &category_descrip);
         
@@ -395,13 +416,23 @@ fn category_post(categoryform: Form<CategoryForm>, cookies: Cookies) -> Result<F
     }
 }
 
+#[post("/category", rank = 2)]
+fn category_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
 /*
 LOGOUT GET
 */
-#[get("/logout")]
-fn logout_get(mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
+#[get("/logout", rank = 1)]
+fn logout_get(_user_id_struct: IsUser, mut cookies: Cookies) -> Result<Flash<Redirect>, Flash<Redirect>> {
     cookies.remove_private(Cookie::named("user_id"));
     return Ok(Flash::success(Redirect::to("/login"), "Successfully logged out".to_string()));
+}
+
+#[get("/logout", rank = 2)]
+fn logout_get_nonuser() -> Redirect {
+    return Redirect::to("/login");
 }
 
 /*
@@ -441,7 +472,7 @@ fn home_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
 
 #[get("/home", rank = 2)]
 fn home_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
-    return Err(Flash::error(Redirect::to("/login"), "You must login to access that page".to_string()));
+    return not_logged_in("/login");
 }
 
 struct IsUser(String);
@@ -462,17 +493,6 @@ impl<'a, 'r> FromRequest<'a, 'r> for IsUser {
     }
 }
 
-#[get("/sensitive", rank = 1)]
-fn sensitive(user_id_struct: IsUser) -> &'static str {
-    println!("{}", user_id_struct.0);
-    "Sensitive data."
-}
-
-#[get("/sensitive", rank = 2)]
-fn sensitive_non_user() -> Result<Flash<Redirect>, Flash<Redirect>> {
-    return Err(Flash::error(Redirect::to("/login"), "You must login to access that page".to_string()));
-}
-
 fn rocket() -> rocket::Rocket {
     rocket::ignite().mount("/", routes![
         index_get,
@@ -480,17 +500,19 @@ fn rocket() -> rocket::Rocket {
         register_get,
         register_get_nonuser,
         register_post,
+        register_post_nonuser,
         login_get,
         login_get_nonuser,
         login_post,
+        login_post_nonuser,
         logout_get,
+        logout_get_nonuser,
         home_get,
         home_get_nonuser,
         category_get,
         category_get_nonuser,
         category_post,
-        sensitive,
-        sensitive_non_user,
+        category_post_nonuser,
     ])
     .attach(Template::fairing())
 }
