@@ -330,14 +330,21 @@ struct CategoryContext {
     flash_class: String,
     flash_msg: String,
     //DONE: Add categories as a vector of Category objects
-    //Serialize doesn't recognize Vectors of Categories, so I had to pass a vector of strings
-    categories: Vec<String>,
+    total_categories: usize,
+    str_categories: Vec<StrCategories>,
 }
 
 #[derive(FromForm)]
 struct CategoryForm {
     name: String,
     descrip: String,
+}
+
+#[derive(Serialize)]
+struct StrCategories {
+    str_category_id: i32,
+    str_category_name: String,
+    str_category_descrip: String,
 }
 
 /*
@@ -365,13 +372,22 @@ fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Templat
     //    .unwrap_or_else(|| "-1".to_string());
     let int_user_id: i32 = str_user_id.parse().expect("Not a number");
     let user_categories: Vec<Category> = get_categories_by_user_id(&int_user_id);
-    let mut str_user_categories: Vec<String> = Vec::new();
+    //let mut str_user_categories: Vec<String> = Vec::new();
+    let num_of_categories = user_categories.len();
+    let mut str_categories: Vec<StrCategories> = Vec::new();
     if user_categories.len() == 0 {
-        str_user_categories.push("No categories yet! Please add one.".to_string());
+        //str_user_categories.push("No categories yet! Please add one.".to_string());
+        //str_user_category_ids.push(format!("{}", "No categories found!"));
+        //Do nothing!
     }
     else {
         for category in user_categories {
-            str_user_categories.push(format!("{}", category.name));
+            str_categories.push(StrCategories{
+                str_category_id: category.id,
+                str_category_name: category.name,
+                str_category_descrip: category.descrip,
+            });
+
         }
     }
     
@@ -381,7 +397,8 @@ fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Templat
         authenticated: true,
         flash_class: flash_class.to_string(),
         flash_msg: flash_message.to_string(),
-        categories: str_user_categories,
+        total_categories: num_of_categories,
+        str_categories: str_categories,
     };
 
     return Template::render("category", &context);

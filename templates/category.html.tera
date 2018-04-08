@@ -30,9 +30,31 @@
     </form>
     <!-- TODO: load categories in an ul here -->
     <h3>Current Categories</h3>
-    <ul>
-        {% for category in categories %}
-        <li>{{ category }}</li>
-        {% endfor %}
-    </ul>
+    <table>
+        <thead>
+            <tr>
+                <th>Category ID</th>
+                <th>Category Name</th>
+                <th>Category Description</th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        {% if str_categories %}
+            {% for category in str_categories %}
+            <tr>
+                <td>{{ category.str_category_id }}</td>
+                <td>{{ category.str_category_name }}</td>
+                <td>{{ category.str_category_descrip }}</td>
+                <td>Click to edit</td>
+                <td>Click to delete</td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td>No categories yet! Please add one.</td>
+            </tr>    
+        {% endif %}
+    </table>
+
 {% endblock body_content %}
