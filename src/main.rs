@@ -439,6 +439,81 @@ fn category_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
 }
 
 /*
+EXPENSE CONTEXT & FORM
+*/
+
+#[derive(Serialize)]
+struct ExpenseContext {
+    title: String,
+    authenticated: bool,
+    flash_class: String,
+    flash_msg: String,
+    total_categories: usize,
+    str_categories: Vec<StrCategories>,
+    //TODO: Add last 5 expenses as a vector of Expense objects
+}
+
+//TODO: Create Expense Form
+
+/*
+EXPENSE GET & POST
+*/
+#[get("/expense", rank = 1)]
+fn expense_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_type = message.0;
+
+    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
+    let flash_class: String;
+    if flash_type == "success".to_string() {
+        flash_class = "success".to_string();
+    }
+    else {
+        flash_class = "alert".to_string();
+    }
+
+    //DONE: Get Categories from user_id, so they can be passed to expense.html.tera
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Not a number!");
+    let user_categories: Vec<Category> = get_categories_by_user_id(&int_user_id);
+    let num_of_categories = user_categories.len();
+    let mut str_categories: Vec<StrCategories> = Vec::new();
+
+    if user_categories.len() == 0 {
+        //Do nothing!
+    }
+    else {
+        for category in user_categories {
+            str_categories.push(StrCategories {
+                str_category_id: category.id,
+                str_category_name: category.name,
+                str_category_descrip: category.descrip,
+            });
+        }
+    }
+
+    //TODO: Get last five expenses from user_id
+
+    let context = ExpenseContext {
+        title: "Expense".to_string(),
+        authenticated: true,
+        flash_class: flash_class.to_string(),
+        flash_msg: flash_message.to_string(),
+        total_categories: num_of_categories,
+        str_categories: str_categories,
+    };
+    return Template::render("expense", &context);
+}
+
+#[get("/expense", rank = 2)]
+fn expense_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
+//TODO: Create Expense Post request that implement IsUser guard
+
+/*
 LOGOUT GET
 */
 #[get("/logout", rank = 1)]
@@ -530,6 +605,8 @@ fn rocket() -> rocket::Rocket {
         category_get_nonuser,
         category_post,
         category_post_nonuser,
+        expense_get,
+        expense_get_nonuser,
     ])
     .attach(Template::fairing())
 }

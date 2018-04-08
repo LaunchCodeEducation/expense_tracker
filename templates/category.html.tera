@@ -2,7 +2,7 @@
 
 {% block body_content %}
     <h1>Categories</h1>
-    <!-- TODO: Add new category form here -->
+    <!-- DONE: Add new category form here -->
     <form action='/category' method="POST">
         <div class="row">
             <div class="small-2 columns">
@@ -28,7 +28,7 @@
             </div>
         </div>
     </form>
-    <!-- TODO: load categories in an ul here -->
+    <!-- DONE: load categories in a table here -->
     <h3>Current Categories</h3>
     <table>
         <thead>
@@ -43,6 +43,9 @@
         {% if str_categories %}
             {% for category in str_categories %}
             <tr>
+                {# Category ID won't be displayed to the user
+                as they don't need it, however I need it for debugging and testing
+                #}
                 <td>{{ category.str_category_id }}</td>
                 <td>{{ category.str_category_name }}</td>
                 <td>{{ category.str_category_descrip }}</td>
