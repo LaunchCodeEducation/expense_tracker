@@ -1,0 +1,19 @@
+use lib::schema::expenses;
+
+#[derive(Queryable)]
+pub struct Expense {
+    pub id: i32,
+    pub user_id: i32,
+    pub category_id: i32,
+    pub name: String,
+    pub amount: String,
+}
+
+#[derive(Insertable)]
+#[table_name="expenses"]
+pub struct NewExpense<'a> {
+    pub user_id: &'a i32,
+    pub category_id: &'a i32,
+    pub name: &'a str,
+    pub amount: &'a str,
+}

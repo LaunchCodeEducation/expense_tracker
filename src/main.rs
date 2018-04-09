@@ -26,6 +26,7 @@ mod lib;
 use lib::models::category::Category;
 use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id};
+use lib::controllers::expensecontroller::{create_expense};
 
 //GET USER ID FROM cookies
 
@@ -453,7 +454,15 @@ struct ExpenseContext {
     //TODO: Add last 5 expenses as a vector of Expense objects
 }
 
-//TODO: Create Expense Form
+//DONE: Create Expense Form
+#[derive(FromForm)]
+struct ExpenseForm {
+    category_id: String,
+    name: String,
+    amount: String,
+}
+
+
 
 /*
 EXPENSE GET & POST
@@ -512,6 +521,37 @@ fn expense_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
 }
 
 //TODO: Create Expense Post request that implement IsUser guard
+#[post("/expense", rank = 1, data = "<expenseform>")]
+fn expense_post(user_id_struct: IsUser, expenseform: Form<ExpenseForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let expense_form = &expenseform.get();
+    let category_id = expense_form.category_id.to_string();
+    let expense_name = expense_form.name.to_string();
+    let expense_amount = expense_form.amount.to_string();
+    if expense_amount == "" {
+        return Err(Flash::error(Redirect::to("/expense"), "Amount cannot be blank!".to_string()));
+    }
+    else {
+        let float_expense_amount: f64 = expense_amount.parse().expect("Not a number");
+            
+        if float_expense_amount < 0.0 {
+            return Err(Flash::error(Redirect::to("/expense"), "Amount cannot be less than 0!".to_string()));
+        }
+        else {
+            //TODO: add create_expense function in the expense controller
+            let str_user_id = user_id_struct.0;
+            let int_user_id: i32 = str_user_id.parse().expect("Not a number");
+            let int_category_id: i32 = category_id.parse().expect("Not a number");
+            let str_expense_amount = float_expense_amount.to_string();
+            create_expense(&int_user_id, &int_category_id, &expense_name, &str_expense_amount);
+            return Ok(Flash::success(Redirect::to("/expense"), "Expense successfully added".to_string()));
+        }
+    }
+}
+
+#[post("/expense", rank = 2)]
+fn expense_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
 
 /*
 LOGOUT GET
@@ -607,6 +647,8 @@ fn rocket() -> rocket::Rocket {
         category_post_nonuser,
         expense_get,
         expense_get_nonuser,
+        expense_post,
+        expense_post_nonuser,
     ])
     .attach(Template::fairing())
 }

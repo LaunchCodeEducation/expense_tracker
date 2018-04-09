@@ -6,19 +6,11 @@
     <form action='/expense' method="POST">
         <div class="row">
             <div class="small-2 columns">
-                <span class="prefix">Expense Amount</span>
-            </div>
-            <div class="small-10 columns">
-                <input type="text" name="amount" />
-            </div>
-        </div>
-        <div class="row">
-            <div class="small-2 columns">
                 <div class="prefix">Category</div>
             </div>
             <div class="small-10 columns">
                 {% if total_categories != 0 %}
-                    <select>
+                    <select name="category_id">
                         {# DONE: Get Categories by user id
                         Loop through them with a tera for loop
                         each as a new option, value is their category_id,
@@ -27,13 +19,29 @@
                         {% for category in str_categories %}
                             <option value={{ category.str_category_id }}>{{ category.str_category_name }}</option>
                         {% endfor %}
-                        {#<option value=1>Category 1</option>#}
                     </select>
                 {% else %}
                     <label>You must first create a <a href="/category">category</a>, before adding an expense</label>
                 {% endif %}
             </div>
         </div>
+        <div class = "row">
+            <div class="small-2 columns">
+                <span class="prefix">Expense Name</span>
+            </div>
+            <div class="small-10 columns">
+                <input type="text" name="name" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="small-2 columns">
+                <span class="prefix">Expense Amount</span>
+            </div>
+            <div class="small-10 columns">
+                <input type="text" name="amount" />
+            </div>
+        </div>
+        
         <div class="row">
             <div class="small-2 column">
             </div>
