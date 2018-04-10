@@ -13,6 +13,7 @@ table! {
             id -> Int4,
             user_id -> Int4,
             category_id -> Int4,
+            created -> Timestamp,
             name -> Varchar,
             amount -> Varchar,
         }
