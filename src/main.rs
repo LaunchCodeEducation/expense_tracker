@@ -10,6 +10,7 @@ extern crate rocket_contrib;
 extern crate diesel;
 extern crate dotenv;
 extern crate bcrypt;
+extern crate chrono;
 
 use bcrypt::{hash, verify};
 
@@ -470,7 +471,7 @@ struct ExpenseForm {
 struct StrExpenses {
     str_expense_id: i32,
     str_category_id: i32,
-    str_created: SystemTime,
+    str_created: String,
     str_name: String,
     str_amount: String,
 }

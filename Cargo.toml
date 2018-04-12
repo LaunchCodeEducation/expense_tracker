@@ -13,6 +13,7 @@ tera = "0.11"
 diesel = { version = "1.0.0", features = ["postgres"] }
 dotenv = "0.9.0"
 bcrypt = "0.2"
+chrono = "0.4"
 
 [dependencies.rocket_contrib]
 version = "*"
