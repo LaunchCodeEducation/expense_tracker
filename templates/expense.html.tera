@@ -52,5 +52,43 @@
     </form>
 
 
-    {# TODO: Load last five expenses here #}
+    {# TODO: Load last five expenses here all the expenses are too much, and should be on their own page#}
+    {# DONE: Load previous expenses#}
+    <h3>Expenses</h3>
+    {% if total_expenses > 0 %}
+        <table>
+            <thead>
+                <tr>
+                    {#
+                    <th>Expense ID</th>
+                    <th>Category ID</th>
+                    #}
+                    <th>Created</th>
+                    <th>Expense Name</th>
+                    <th>Expense Amount</th>
+                </tr>
+            </thead>
+            {% for expense in str_expenses %}
+            <tr>
+                {#
+                <td>{{ expense.str_expense_id }}</td>
+                <td>{{ expense.str_category_id }}</td>
+                #}
+                <td>{{ expense.str_created }}</td>
+                <td>{{ expense.str_name }}</td>
+                <td>{{ expense.str_amount }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {#
+        <ul>
+            {% for expense in str_expenses %}
+                <li>Expense Name: {{ expense.str_name }} Expense Amount: {{ expense.str_amount }}</li>
+            {% endfor %}
+        </ul>
+        #}
+    {% else %}
+        <h3>No Expenses yet! Please add one above.</h3>
+    {% endif %}
+    
 {% endblock body_content %}

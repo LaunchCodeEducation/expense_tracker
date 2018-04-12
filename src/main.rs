@@ -19,14 +19,16 @@ use rocket::request::{self, Form, FlashMessage, Request, FromRequest};
 use rocket::http::{Cookie, Cookies};
 use rocket::Outcome;
 
-
 use std::string::String;
+use std::time::SystemTime;
+
 
 mod lib;
 use lib::models::category::Category;
+use lib::models::expense::Expense;
 use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id};
-use lib::controllers::expensecontroller::{create_expense};
+use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id};
 
 //GET USER ID FROM cookies
 
@@ -451,7 +453,9 @@ struct ExpenseContext {
     flash_msg: String,
     total_categories: usize,
     str_categories: Vec<StrCategories>,
+    total_expenses: usize,
     //TODO: Add last 5 expenses as a vector of Expense objects
+    str_expenses: Vec<StrExpenses>,
 }
 
 //DONE: Create Expense Form
@@ -460,6 +464,15 @@ struct ExpenseForm {
     category_id: String,
     name: String,
     amount: String,
+}
+
+#[derive(Serialize)]
+struct StrExpenses {
+    str_expense_id: i32,
+    str_category_id: i32,
+    str_created: SystemTime,
+    str_name: String,
+    str_amount: String,
 }
 
 
@@ -503,6 +516,22 @@ fn expense_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template 
     }
 
     //TODO: Get last five expenses from user_id
+    //DONE: Get previous user expenses
+    let user_expenses: Vec<Expense> = get_expenses_by_user_id(&int_user_id);
+    let mut str_expenses: Vec<StrExpenses> = Vec::new();
+    let num_of_expenses = user_expenses.len();
+    if user_expenses.len() > 0 {
+        for expense in user_expenses {
+            println!("Expense Created: {:?}", expense.created);
+            str_expenses.push(StrExpenses {
+                str_expense_id: expense.id,
+                str_category_id: expense.category_id,
+                str_created: expense.created,
+                str_name: expense.name,
+                str_amount: expense.amount,
+            });
+        }
+    }
 
     let context = ExpenseContext {
         title: "Expense".to_string(),
@@ -511,6 +540,8 @@ fn expense_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template 
         flash_msg: flash_message.to_string(),
         total_categories: num_of_categories,
         str_categories: str_categories,
+        total_expenses: num_of_expenses,
+        str_expenses: str_expenses,
     };
     return Template::render("expense", &context);
 }
@@ -520,7 +551,7 @@ fn expense_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
     return not_logged_in("/login");
 }
 
-//TODO: Create Expense Post request that implement IsUser guard
+//DONE: Create Expense Post request that implement IsUser guard
 #[post("/expense", rank = 1, data = "<expenseform>")]
 fn expense_post(user_id_struct: IsUser, expenseform: Form<ExpenseForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
     let expense_form = &expenseform.get();
@@ -537,7 +568,7 @@ fn expense_post(user_id_struct: IsUser, expenseform: Form<ExpenseForm>) -> Resul
             return Err(Flash::error(Redirect::to("/expense"), "Amount cannot be less than 0!".to_string()));
         }
         else {
-            //TODO: add create_expense function in the expense controller
+            //DONE: add create_expense function in the expense controller
             let str_user_id = user_id_struct.0;
             let int_user_id: i32 = str_user_id.parse().expect("Not a number");
             let int_category_id: i32 = category_id.parse().expect("Not a number");
