@@ -31,24 +31,8 @@ use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id};
 
-//GET USER ID FROM cookies
-
-/*
-CONTEXTS
-Contexts are Rocket's way of passing information to the HTML doc
-So when we want to pass information to our Tera template, we have to create
-a new context that defines what that data will be.
-
-Since I pass information to almost every route, there needs to be a context created
-for each GET route.
-
-FORMS
-Forms are Rocket's way of passing information from a POST request
-to the server (here). 
-
-Since Rust is statically typed, and compiled
-we have to define a Form for each POST route.
-*/
+use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses};
+use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm};
 
 /*
 INDEX GET AND POST
@@ -63,24 +47,6 @@ fn index_get_nonuser() -> Redirect {
     return Redirect::to("/login");
 }
 
-
-/*
-REGISTER CONTEXTS & FORMS
-*/
-#[derive(Serialize)]
-struct RegisterContext {
-    title: String,
-    authenticated: bool,
-    flash_class: String,
-    flash_msg: String,
-}
-
-#[derive(FromForm)]
-struct RegisterForm {
-    email: String,
-    password: String,
-    confirm_password: String,
-}
 
 fn not_logged_in(route: &str) -> Result<Flash<Redirect>, Flash<Redirect>> {
     return Err(Flash::error(Redirect::to(route), "You need to login, or register!"));
@@ -234,23 +200,6 @@ fn register_post_nonuser(registerform: Form<RegisterForm>, mut cookies: Cookies)
 }
 
 /*
-LOGIN CONTEXT & FORMS
-*/
-#[derive(Serialize)]
-struct LoginContext {
-    title: String,
-    authenticated: bool,
-    flash_class: String,
-    flash_msg: String,
-}
-
-#[derive(FromForm)]
-struct LoginForm {
-    email: String,
-    password: String,
-}
-
-/*
 LOGIN GET AND POST
 */
 #[get("/login", rank = 1)]
@@ -323,32 +272,6 @@ fn login_post_nonuser(loginform: Form<LoginForm>, mut cookies: Cookies) -> Resul
             return Err(Flash::error(Redirect::to("/login"), message));
         }
     }
-}
-/*
-CATEGORY CONTEXT & FORMS
-*/
-#[derive(Serialize)]
-struct CategoryContext {
-    title: String,
-    authenticated: bool,
-    flash_class: String,
-    flash_msg: String,
-    //DONE: Add categories as a vector of Category objects
-    total_categories: usize,
-    str_categories: Vec<StrCategories>,
-}
-
-#[derive(FromForm)]
-struct CategoryForm {
-    name: String,
-    descrip: String,
-}
-
-#[derive(Serialize)]
-struct StrCategories {
-    str_category_id: i32,
-    str_category_name: String,
-    str_category_descrip: String,
 }
 
 /*
@@ -443,42 +366,6 @@ fn category_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
 }
 
 /*
-EXPENSE CONTEXT & FORM
-*/
-
-#[derive(Serialize)]
-struct ExpenseContext {
-    title: String,
-    authenticated: bool,
-    flash_class: String,
-    flash_msg: String,
-    total_categories: usize,
-    str_categories: Vec<StrCategories>,
-    total_expenses: usize,
-    //TODO: Add last 5 expenses as a vector of Expense objects
-    str_expenses: Vec<StrExpenses>,
-}
-
-//DONE: Create Expense Form
-#[derive(FromForm)]
-struct ExpenseForm {
-    category_id: String,
-    name: String,
-    amount: String,
-}
-
-#[derive(Serialize)]
-struct StrExpenses {
-    str_expense_id: i32,
-    str_category_id: i32,
-    str_created: String,
-    str_name: String,
-    str_amount: String,
-}
-
-
-
-/*
 EXPENSE GET & POST
 */
 #[get("/expense", rank = 1)]
@@ -523,7 +410,7 @@ fn expense_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template 
     let num_of_expenses = user_expenses.len();
     if user_expenses.len() > 0 {
         for expense in user_expenses {
-            println!("Expense Created: {:?}", expense.created);
+            //println!("Expense Created: {:?}", expense.created);
             str_expenses.push(StrExpenses {
                 str_expense_id: expense.id,
                 str_category_id: expense.category_id,
