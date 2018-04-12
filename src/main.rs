@@ -31,7 +31,7 @@ use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id};
 
-use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses};
+use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext};
 use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm};
 
 /*
@@ -484,18 +484,6 @@ fn logout_get(_user_id_struct: IsUser, mut cookies: Cookies) -> Result<Flash<Red
 #[get("/logout", rank = 2)]
 fn logout_get_nonuser() -> Redirect {
     return Redirect::to("/login");
-}
-
-/*
-WELCOME/HOME CONTEXT
-*/
-#[derive(Serialize)]
-struct HomeContext {
-    title: String,
-    authenticated: bool,
-    flash_class: String,
-    flash_msg: String,
-    user_email: String,
 }
 
 /*

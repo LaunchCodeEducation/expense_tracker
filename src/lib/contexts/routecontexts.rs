@@ -62,3 +62,12 @@ pub struct StrExpenses {
     pub str_name: String,
     pub str_amount: String,
 }
+
+#[derive(Serialize)]
+pub struct HomeContext {
+    pub title: String,
+    pub authenticated: bool,
+    pub flash_class: String,
+    pub flash_msg: String,
+    pub user_email: String,
+}
