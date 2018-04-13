@@ -21,7 +21,6 @@ use rocket::http::{Cookie, Cookies};
 use rocket::Outcome;
 
 use std::string::String;
-use std::time::SystemTime;
 
 
 mod lib;
@@ -33,6 +32,8 @@ use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_i
 
 use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext};
 use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm};
+
+use lib::utils::utilities::{not_logged_in, improper_user_access, flash_message_breakdown};
 
 /*
 INDEX GET AND POST
@@ -47,61 +48,9 @@ fn index_get_nonuser() -> Redirect {
     return Redirect::to("/login");
 }
 
-
-fn not_logged_in(route: &str) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    return Err(Flash::error(Redirect::to(route), "You need to login, or register!"));
-}
-
-fn improper_user_access(route: &str) -> Result<Flash<Redirect>, Flash<Redirect>> {
-    return Err(Flash::error(Redirect::to(route), "You are already logged in! Logout to login, or create a new account."));
-}
-
-//The following function is deprecated now that this project uses a request guard for users
-fn logged_in(mut cookies: Cookies) -> bool {
-    //DONE: Remove this function, and simply get the user_id_from_cookies each function and if the user_id is -1, the user isn't logged in
-    //DONE: Every GET, and POST should check if the user is logged in, and if not redirect them to the login page, right now you can kind of squeak past this by already having a cookie in memory, or hard coding a URL in to the address bar
-    //let cooks = cookies.get_private("user_id").is_none();
-    if cookies.get_private("user_id").is_none() {
-        return false
-    }
-    else {
-        return true;
-    }
-    
-}
-
-//The following funciton is deprecated now that all GETS and POSTS are authenticated, and the user_id is passed as a struct
-fn get_user_id_from_cookies(mut cookies: Cookies) -> String {
-    if cookies.get_private("user_id").is_none() {
-        return "-1".to_string();
-    }
-    else {
-        let cooks = cookies.get_private("user_id")
-            .map(|c| format!("{}", c.value()))
-            .unwrap_or_else(|| "-1".to_string());
-
-        return cooks.to_string();
-    }
-    
-}
-
 /*
 REGISTER GET AND POST
 */
-
-fn flash_message_breakdown(flash: Option<FlashMessage>) -> (String, String) {
-    // Access the flash message result so it can be added to the context
-    let flash_message: String;
-    // Unwrap result or else return a string that looks like: "no class&no flash message"
-    flash_message = flash.map(|msg| format!("{}&{}", msg.name().to_string(), msg.msg().to_string()))
-        .unwrap_or_else(|| "no class&No flash message".to_string());
-    // Split the flash message into a flash message like: "User logged in" and a flash class like: "success"
-    let string_split_position = flash_message.find('&');
-    let flash_message_split = flash_message.split_at(string_split_position.unwrap_or_else(|| 0));
-
-    let message = (flash_message_split.0.to_string(), flash_message_split.1.to_string());
-    return message;
-}
 
 #[get("/register", rank = 1)]
 fn register_get(_user_id_struct: IsUser) -> Result<Flash<Redirect>, Flash<Redirect>> {
@@ -113,16 +62,7 @@ fn register_get_nonuser(flash: Option<FlashMessage>) -> Template {
     //DONE: Make flash_message_breakdown function
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
-    let flash_type = message.0;
-
-    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
-    let flash_class: String;
-    if flash_type == "success".to_string() {
-        flash_class = "success".to_string();
-    }
-    else {
-        flash_class = "alert".to_string();
-    }
+    let flash_class = message.0;
     
     // Create context that is passed to Tera Template
     let context = RegisterContext {
@@ -212,16 +152,7 @@ fn login_get_nonuser(flash: Option<FlashMessage>) -> Template {
     //DONE: Make flash_message_breakdown function
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
-    let flash_type = message.0;
-
-    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
-    let flash_class: String;
-    if flash_type == "success".to_string() {
-        flash_class = "success".to_string();
-    }
-    else {
-        flash_class = "alert".to_string();
-    }
+    let flash_class = message.0;
 
     // Create context that is passed to Tera Template
     let context = LoginContext {
@@ -281,16 +212,7 @@ CATEGORY GET AND POST
 fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Template {
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
-    let flash_type = message.0;
-
-    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
-    let flash_class: String;
-    if flash_type == "success".to_string() {
-        flash_class = "success".to_string();
-    }
-    else {
-        flash_class = "alert".to_string();
-    }
+    let flash_class = message.0;
 
     //DONE: Get user categories and pass them as a vector to the CategoryContext
     let str_user_id = str_user_struct.0;
@@ -372,16 +294,7 @@ EXPENSE GET & POST
 fn expense_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
-    let flash_type = message.0;
-
-    // Depending on the flash class convert the flash_class into CSS readable code that can be passed to our Tera template
-    let flash_class: String;
-    if flash_type == "success".to_string() {
-        flash_class = "success".to_string();
-    }
-    else {
-        flash_class = "alert".to_string();
-    }
+    let flash_class = message.0;
 
     //DONE: Get Categories from user_id, so they can be passed to expense.html.tera
     let str_user_id = user_id_struct.0;
@@ -493,7 +406,7 @@ WELCOME/HOME GET
 fn home_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
     let message = flash_message_breakdown(flash);
     let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
-    let flash_type = message.0;
+    let flash_class = message.0;
 
     let int_user_id: i32 = user_id_struct.0.parse().expect("Not a number");
     let current_user = get_user_by_id(&int_user_id);
@@ -501,7 +414,7 @@ fn home_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
     let context = HomeContext {
         title: "Home".to_string(),
         authenticated: true,
-        flash_class: flash_type.to_string(),
+        flash_class: flash_class.to_string(),
         flash_msg: flash_message.to_string(),
         user_email: current_user.email,
     };

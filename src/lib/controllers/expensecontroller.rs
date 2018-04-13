@@ -3,7 +3,6 @@ use diesel::insert_into;
 
 use lib::models::expense::{Expense, NewExpense};
 use lib::db_manager::establish_connection;
-use std::time::SystemTime;
 use chrono::prelude::Utc;
 
 pub fn create_expense<'a>(user_id: &'a i32, category_id: &'a i32, name: &'a str, amount: &'a str) -> Expense {
