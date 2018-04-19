@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use diesel::insert_into;
+use diesel::{insert_into, update};
 
 use lib::models::category::{Category, NewCategory};
 use lib::db_manager::establish_connection;
@@ -19,6 +19,26 @@ pub fn create_category<'a>(user_id: &'a i32, name: &'a str, descrip: &'a str) ->
         .values(&new_category)
         .get_result(&conn)
         .expect("Error saving category")
+}
+
+pub fn update_category<'a>(category_id: &'a i32, n: &'a str, d: &'a str) -> Category {
+    use lib::schema::categories;
+    use lib::schema::categories::columns::id;
+    use lib::schema::categories::columns::name;
+    use lib::schema::categories::columns::descrip;
+    use lib::schema::categories::dsl::*;
+
+    let conn = establish_connection();
+
+    let target = categories.filter(id.eq(category_id));
+
+    update(target)
+        .set((
+            name.eq(n),
+            descrip.eq(d)
+        ))
+        .get_result(&conn)
+        .expect("error updating category")
 }
 
 pub fn get_category_by_category_id<'a>(input_id: &'a i32) -> Category {

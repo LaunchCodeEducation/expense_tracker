@@ -1,0 +1,38 @@
+{% extends "menu" %}
+
+{% block body_content %}
+    {% if authorized %}
+        {# edit here #}
+        <h3>AUTHORIZED</h3>
+        <form action='/category/edit/{{ category_id }}' method="POST">
+            <div class="row">
+                <div class="small-2 columns">
+                    <span class="prefix">Category Name</span>
+                </div>
+                <div class="small-10 columns">
+                    <input type="text" id="name" name="name" value="{{ category_name }}" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="small-2 columns">
+                    <span class="prefix">Category Description</span>
+                </div>
+                <div class="small-10 columns">
+                    <input type="text" id="descrip" name="descrip" value="{{ category_descrip }}"/>
+                </div>
+            </div>
+            <div class="row">
+                <div class="small-2 columns">
+                    {# nothing #}
+                </div>
+                <div class="small-10 columns">
+                    <a href="/category" class="button secondary">Cancel</a>
+                    <input class="button" type="submit" value="Update Category" />
+                </div>
+            </div>
+        </form>
+    {% else %}
+        <h5>You have requested access to a category that is not associated with your account.</h3>
+        <h6>Click <a href="/home">here to go home</a> or select an option from the menu above.</h3>
+    {% endif %}
+{% endblock body_content %}

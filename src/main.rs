@@ -27,10 +27,10 @@ mod lib;
 use lib::models::category::Category;
 use lib::models::expense::Expense;
 use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
-use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id};
+use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id};
 
-use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext};
+use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext};
 use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm};
 
 use lib::utils::utilities::{not_logged_in, improper_user_access, flash_message_breakdown};
@@ -288,6 +288,108 @@ fn category_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
 }
 
 /*
+EDIT CATEGORY GET
+*/
+#[get("/category/edit/<category_id>", rank = 1)]
+fn category_edit_get(user_id_struct: IsUser, flash: Option<FlashMessage>, category_id: String) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_class = message.0;
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+    let int_category_id: i32 = category_id.parse().expect("Failed to parse");
+    //DONE: Get category from category_id
+    let category = get_category_by_category_id(&int_category_id);
+    println!("User ID: {}", str_user_id);
+    println!("Category User ID: {}", category.user_id);
+    if category.user_id != int_user_id {
+        /*
+        The User id associated with this category, does not match the user_id with this authentaicted user
+        */
+        //DONE: compare category_user_id to str_user_id, if they don't match the user has requested access to a resource they don't have permission to view -- return the template, but the context should say they are not authorized to view
+        //What if we just return an error template? Tried this, and it was real hokey -- decided to just return the same template, but the content changes on if they are authorized to view
+        //I don't love that solution, I would prefer for the sever to redirect, so they don't land on the page -- but I am struggling with Rust/Rocket's strictly typed returns
+        //In reading more about Rocket, you can return anythning that implements Responder, and I can attach Responder to a custom struct, so I could create my own return type, that allows for either a Flash<Redirect>, or a Template, but I'm not yet convinced that would be any better
+        //println!("DON'T MATCH");
+        
+        let context = UnauthorizedAccessContext {
+            title: String::from("Edit Category"),
+            authenticated: true,
+            authorized: false,
+            flash_class: String::from(flash_class),
+            flash_msg: String::from(flash_message),
+        };
+        return Template::render("category_edit", &context)
+    }
+    else {
+        //DONE: compare category_user_id to str_user_id, if they do match, they are allowed to view, and edit this category, so return a template
+        //println!("MATCH");
+        /*
+        The User id associated with this category, matches the user_id with this authenticated user
+        */
+        //DONE: create a category_edit context
+        let context = EditCategoryContext {
+            title: String::from("Edit Category"),
+            authenticated: true,
+            authorized: true,
+            flash_class: String::from(flash_class),
+            flash_msg: String::from(flash_message),
+            total_categories: 1,
+            category_id: category_id,
+            category_name: category.name,
+            category_descrip: category.descrip,
+        };
+        return Template::render("category_edit", &context);
+    }
+    
+    
+}
+
+#[get("/category/edit/<category_id>", rank = 2)]
+fn category_edit_get_nonuser(category_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
+/*
+EDIT CATEGORY POST
+*/
+#[post("/category/edit/<category_id>", rank = 1, data="<categoryform>")]
+fn category_edit_post(user_id_struct: IsUser, category_id: String, categoryform: Form<CategoryForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let category_form = &categoryform.get();
+    let category_name = category_form.name.to_string();
+    let category_descrip = category_form.descrip.to_string();
+    let int_category_id: i32 = category_id.parse().expect("unable to parse");
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("unable to parse");
+
+    let category = get_category_by_category_id(&int_category_id);
+
+    if category.user_id != int_user_id {
+        return Err(Flash::error(Redirect::to("/category"), "You cannot edit a category that does not belong to you!".to_string()));
+    }
+    else {
+        if category_name == "".to_string() {
+            return Err(Flash::error(Redirect::to("/category"), "Category name cannot be blank".to_string()));
+        }
+        else if category_descrip == "".to_string() {
+            return Err(Flash::error(Redirect::to("/category"), "Category description cannot be blank".to_string()))
+        }
+        else {
+            //TODO: update Category object, update Category in DB
+            update_category(&int_category_id, &category_name, &category_descrip);
+            return Ok(Flash::success(Redirect::to("/category"), "Category updated successfully!".to_string()));
+        } 
+    }
+
+}
+
+#[post("/category/edit/<category_id>", rank = 2)]
+fn category_edit_post_nonuser(category_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
+
+/*
 EXPENSE GET & POST
 */
 #[get("/expense", rank = 1)]
@@ -465,6 +567,10 @@ fn rocket() -> rocket::Rocket {
         category_get_nonuser,
         category_post,
         category_post_nonuser,
+        category_edit_get,
+        category_edit_get_nonuser,
+        category_edit_post,
+        category_edit_post_nonuser,
         expense_get,
         expense_get_nonuser,
         expense_post,

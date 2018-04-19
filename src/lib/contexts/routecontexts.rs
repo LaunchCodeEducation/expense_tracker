@@ -35,6 +35,20 @@ pub struct CategoryContext {
 }
 
 #[derive(Serialize)]
+pub struct EditCategoryContext {
+    pub title: String,
+    pub authenticated: bool,
+    pub authorized: bool,
+    pub flash_class: String,
+    pub flash_msg: String,
+    pub total_categories: usize,
+    pub category_id: String,
+    pub category_name: String,
+    pub category_descrip: String,
+    //pub str_categories: Vec<StrCategories>,
+}
+
+#[derive(Serialize)]
 pub struct StrCategories {
     pub str_category_id: i32,
     pub str_category_name: String,
@@ -70,4 +84,13 @@ pub struct HomeContext {
     pub flash_class: String,
     pub flash_msg: String,
     pub user_email: String,
+}
+
+#[derive(Serialize)]
+pub struct UnauthorizedAccessContext {
+    pub title: String,
+    pub authenticated: bool,
+    pub authorized: bool,
+    pub flash_class: String,
+    pub flash_msg: String,
 }
