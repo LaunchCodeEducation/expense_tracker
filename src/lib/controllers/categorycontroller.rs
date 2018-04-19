@@ -13,6 +13,7 @@ pub fn create_category<'a>(user_id: &'a i32, name: &'a str, descrip: &'a str) ->
         user_id: user_id,
         name: name,
         descrip: descrip,
+        archived: false,
     };
 
     insert_into(categories::table)
@@ -41,6 +42,40 @@ pub fn update_category<'a>(category_id: &'a i32, n: &'a str, d: &'a str) -> Cate
         .expect("error updating category")
 }
 
+//TODO: archive_category function it should be very similar to update_category, but only changes the archived column
+pub fn archive_category(category_id: &i32) -> Category {
+    use lib::schema::categories;
+    use lib::schema::categories::columns::id;
+    use lib::schema::categories::columns::archived;
+    use lib::schema::categories::dsl::*;
+
+    let conn = establish_connection();
+
+    let target = categories.filter(id.eq(category_id));
+
+    update(target)
+        .set(archived.eq(true))
+        .get_result(&conn)
+        .expect("error archiving category")
+}
+
+//TODO: unarchive_category function it should be very similar to arhive_category
+pub fn unarchive_category(category_id: &i32) -> Category {
+    use lib::schema::categories;
+    use lib::schema::categories::columns::id;
+    use lib::schema::categories::columns::archived;
+    use lib::schema::categories::dsl::*;
+
+    let conn = establish_connection();
+
+    let target = categories.filter(id.eq(category_id));
+
+    update(target)
+        .set(archived.eq(false))
+        .get_result(&conn)
+        .expect("error archiving category")
+}
+
 pub fn get_category_by_category_id<'a>(input_id: &'a i32) -> Category {
     use lib::schema::categories::dsl::*;
 
@@ -61,7 +96,8 @@ pub fn get_category_by_category_id<'a>(input_id: &'a i32) -> Category {
             id: -1,
             user_id: -1,
             name: String::from(""),
-            descrip: String::from("")
+            descrip: String::from(""),
+            archived: false
         }
     }
 }
@@ -76,6 +112,7 @@ pub fn get_categories_by_user_id<'a>(input_id: &'a i32) -> Vec<Category> {
         .is_ok() {
         
         let user_categories: Vec<Category> = categories.filter(user_id.eq(input_id))
+            .order(id)
             .get_results::<Category>(&conn)
             .expect("Error loading tables");
 

@@ -30,17 +30,18 @@
     </form>
     <!-- DONE: load categories in a table here -->
     <h3>Current Categories</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Category ID</th>
-                <th>Category Name</th>
-                <th>Category Description</th>
-                <th>Edit</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
+    
         {% if str_categories %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category ID</th>
+                        <th>Category Name</th>
+                        <th>Category Description</th>
+                        <th>Edit</th>
+                        <th>Archive</th>
+                    </tr>
+            </thead>
             {% for category in str_categories %}
             <tr>
                 {# Category ID won't be displayed to the user
@@ -49,15 +50,47 @@
                 <td>{{ category.str_category_id }}</td>
                 <td>{{ category.str_category_name }}</td>
                 <td>{{ category.str_category_descrip }}</td>
-                <td>Click to edit</td>
-                <td>Click to delete</td>
+                <td><a href='/category/edit/{{ category.str_category_id }}'>Click to edit</a></td>
+                <td><a href='/category/archive/{{ category.str_category_id }}'>Click to archive</a></td>
             </tr>
             {% endfor %}
+        </table>
+        {# TODO: Create an archived categories section #}
+            
         {% else %}
+            <table>
             <tr>
                 <td>No categories yet! Please add one.</td>
             </tr>    
+            </table>
         {% endif %}
-    </table>
+        {% if archived_categories %}
+            <h3>Archived Categories</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category ID</th>
+                        <th>Category Name</th>
+                        <th>Category Description</th>
+                        <th>Edit</th>
+                        <th>Archive</th>
+                    </tr>
+                </thead>
+                {% for category in archived_categories %}
+                    <tr>
+                        {# Category ID won't be displayed to the user
+                        as they don't need it, however I need it for debugging and testing
+                        #}
+                        <td>{{ category.str_category_id }}</td>
+                        <td>{{ category.str_category_name }}</td>
+                        <td>{{ category.str_category_descrip }}</td>
+                        <td><a href='/category/edit/{{ category.str_category_id }}'>Click to edit</a></td>
+                        <td><a href='/category/unarchive/{{ category.str_category_id }}'>Click to unarchive</a></td>
+                    </tr>
+                {% endfor %}
+            </table>
+            {% else %}
+            {# nothing, we don't need to show them anything #}
+            {% endif %}
 
 {% endblock body_content %}

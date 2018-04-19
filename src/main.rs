@@ -27,7 +27,7 @@ mod lib;
 use lib::models::category::Category;
 use lib::models::expense::Expense;
 use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
-use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category};
+use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category, archive_category, unarchive_category};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id};
 
 use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext};
@@ -224,6 +224,7 @@ fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Templat
     //let mut str_user_categories: Vec<String> = Vec::new();
     let num_of_categories = user_categories.len();
     let mut str_categories: Vec<StrCategories> = Vec::new();
+    let mut archived_categories: Vec<StrCategories> = Vec::new();
     if user_categories.len() == 0 {
         //str_user_categories.push("No categories yet! Please add one.".to_string());
         //str_user_category_ids.push(format!("{}", "No categories found!"));
@@ -231,12 +232,22 @@ fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Templat
     }
     else {
         for category in user_categories {
-            str_categories.push(StrCategories{
+            if category.archived == false {
+                str_categories.push(StrCategories{
                 str_category_id: category.id,
                 str_category_name: category.name,
                 str_category_descrip: category.descrip,
-            });
-
+                archived: category.archived,
+                });
+            }
+            else {
+                archived_categories.push(StrCategories{
+                    str_category_id: category.id,
+                    str_category_name: category.name,
+                    str_category_descrip: category.descrip,
+                    archived: category.archived,
+                });
+            }
         }
     }
     
@@ -248,6 +259,7 @@ fn category_get(str_user_struct: IsUser, flash: Option<FlashMessage>) -> Templat
         flash_msg: flash_message.to_string(),
         total_categories: num_of_categories,
         str_categories: str_categories,
+        archived_categories: archived_categories,
     };
 
     return Template::render("category", &context);
@@ -388,6 +400,53 @@ fn category_edit_post_nonuser(category_id: String) -> Result<Flash<Redirect>, Fl
     return not_logged_in("/login");
 }
 
+/*
+CATEGORY ARCHIVE/UNARCHIVE
+*/
+#[get("/category/archive/<category_id>", rank = 1)]
+fn category_archive_get(user_id_struct: IsUser, category_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+    let int_category_id: i32 = category_id.parse().expect("Failed to parse");
+
+    let category = get_category_by_category_id(&int_category_id);
+    
+    if category.user_id != int_user_id {
+        return Err(Flash::error(Redirect::to("/category"), "You attempted to archive a category that is not associated with your account".to_string()));
+    }
+    else {
+        archive_category(&int_category_id);
+        return Ok(Flash::success(Redirect::to("/category"), "Category archived successfully"));
+    }
+}
+
+#[get("/category/archive/<category_id>", rank = 2)]
+fn category_archive_get_nonuser(category_id: String)  -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
+#[get("/category/unarchive/<category_id>", rank = 1)]
+fn category_unarchive_get(user_id_struct: IsUser, category_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+    let int_category_id: i32 = category_id.parse().expect("Failed to parse");
+
+    let category = get_category_by_category_id(&int_category_id);
+    
+    if category.user_id != int_user_id {
+        return Err(Flash::error(Redirect::to("/category"), "You attempted to unarchive a category that is not associated with your account".to_string()));
+    }
+    else {
+        unarchive_category(&int_category_id);
+        return Ok(Flash::success(Redirect::to("/category"), "Category unarchived successfully"));
+    }
+}
+
+#[get("/category/unarchive/<category_id>", rank = 2)]
+fn category_unarchive_get_nonuser(category_id: String)  -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
 
 /*
 EXPENSE GET & POST
@@ -410,11 +469,15 @@ fn expense_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template 
     }
     else {
         for category in user_categories {
-            str_categories.push(StrCategories {
+            if category.archived == false {
+                str_categories.push(StrCategories {
                 str_category_id: category.id,
                 str_category_name: category.name,
                 str_category_descrip: category.descrip,
-            });
+                archived: category.archived,
+                });
+            }
+            
         }
     }
 
@@ -571,6 +634,10 @@ fn rocket() -> rocket::Rocket {
         category_edit_get_nonuser,
         category_edit_post,
         category_edit_post_nonuser,
+        category_archive_get,
+        category_archive_get_nonuser,
+        category_unarchive_get,
+        category_unarchive_get_nonuser,
         expense_get,
         expense_get_nonuser,
         expense_post,

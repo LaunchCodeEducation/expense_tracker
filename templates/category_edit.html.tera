@@ -3,7 +3,6 @@
 {% block body_content %}
     {% if authorized %}
         {# edit here #}
-        <h3>AUTHORIZED</h3>
         <form action='/category/edit/{{ category_id }}' method="POST">
             <div class="row">
                 <div class="small-2 columns">

@@ -6,6 +6,7 @@ pub struct Category {
     pub user_id: i32,
     pub name: String,
     pub descrip: String,
+    pub archived: bool,
 }
 
 #[derive(Insertable)]
@@ -14,5 +15,6 @@ pub struct NewCategory<'a> {
     pub user_id: &'a i32,
     pub name: &'a str,
     pub descrip: &'a str,
+    pub archived: bool,
 
 }

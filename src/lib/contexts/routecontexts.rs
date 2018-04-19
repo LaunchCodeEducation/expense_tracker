@@ -32,6 +32,7 @@ pub struct CategoryContext {
     //DONE: Add categories as a vector of Category objects
     pub total_categories: usize,
     pub str_categories: Vec<StrCategories>,
+    pub archived_categories: Vec<StrCategories>,
 }
 
 #[derive(Serialize)]
@@ -53,6 +54,15 @@ pub struct StrCategories {
     pub str_category_id: i32,
     pub str_category_name: String,
     pub str_category_descrip: String,
+    pub archived: bool,
+}
+
+#[derive(Serialize)]
+pub struct StrArchivedCategories {
+    pub str_category_id: i32,
+    pub str_category_name: String,
+    pub str_category_descrip: String,
+    pub archived: bool,
 }
 
 #[derive(Serialize)]

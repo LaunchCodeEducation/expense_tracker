@@ -5,6 +5,7 @@
             user_id -> Int4,
             name -> Varchar,
             descrip -> Varchar,
+            archived -> Bool,
         }
     }
 
