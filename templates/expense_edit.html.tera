@@ -1,0 +1,52 @@
+{% extends "menu" %}
+
+{% block body_content %}
+    {% if authorized %}
+        {# edit here #}
+        <form action='/expense/edit/{{ expense_id }}' method="POST">
+            <div class="row">
+                <div class="small-2 columns">
+                    <span class="prefix">Category</span>
+                </div>
+                <div class="small-10 columns">
+                    {% if total_categories != 0 %}
+                        <select name="category_id">
+                            {% for category in str_categories %}
+                                <option value={{ category.str_category_id }}>{{ category.str_category_name }}</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <label>You must first create a <a href="/category">category</a>, before editing an expense</label>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="small-2 columns">
+                    <span class="prefix">Expense Name</span>
+                </div>
+                <div class="small-10 columns">
+                    <input type="text" name="name" value="{{ expense_name }}" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="small-2 columns">
+                    <span class="prefix">Expense Amount</span>
+                </div>
+                <div class="small-10 columns">
+                    <input type="text" name="amount" value="{{ expense_amount }}"/>
+                </div>
+            </div>
+            <div class="row">
+                <div class="small-2 columns">
+                </div>
+                <div class="small-10 columns">
+                    <a href="/expense" class="button secondary">Cancel</a>
+                    <input class="button" type="submit" value="Update Expense" />
+                </div>
+            </div>
+        </form>
+    {% else %}
+        <h5>You have requested access to an expense that is not associated with your account.</h3>
+        <h6>Click <a href="/home">here to go home</a> or select an option from the menu above.</h3>
+    {% endif %}
+{% endblock body_content %}

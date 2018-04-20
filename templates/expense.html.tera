@@ -66,6 +66,8 @@
                     <th>Created</th>
                     <th>Expense Name</th>
                     <th>Expense Amount</th>
+                    <th>Edit</th>
+                    <th>Delete</th>
                 </tr>
             </thead>
             {% for expense in str_expenses %}
@@ -77,6 +79,8 @@
                 <td>{{ expense.str_created }}</td>
                 <td>{{ expense.str_name }}</td>
                 <td>{{ expense.str_amount }}</td>
+                <td><a href='/expense/edit/{{ expense.str_expense_id }}'>Click to Edit</a></td>
+                <td><a href='/expense/delete/{{ expense.str_expense_id }}'>Click to delete</a></td>
             </tr>
             {% endfor %}
         </table>

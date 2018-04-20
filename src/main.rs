@@ -28,9 +28,9 @@ use lib::models::category::Category;
 use lib::models::expense::Expense;
 use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category, archive_category, unarchive_category};
-use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id};
+use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id, get_expense_by_expense_id, update_expense, delete_expense_by_id};
 
-use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext};
+use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext, EditExpenseContext};
 use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm};
 
 use lib::utils::utilities::{not_logged_in, improper_user_access, flash_message_breakdown};
@@ -555,6 +555,141 @@ fn expense_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
 }
 
 /*
+EDIT EXPENSE GET
+*/
+#[get("/expense/edit/<expense_id>", rank = 1)]
+fn expense_edit_get(user_id_struct: IsUser, flash: Option<FlashMessage>, expense_id: String) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_class = message.0;
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+    let int_expense_id: i32 = expense_id.parse().expect("Failed to parse");
+
+    let user_categories: Vec<Category> = get_categories_by_user_id(&int_user_id);
+    let num_of_categories = user_categories.len();
+    let mut str_categories: Vec<StrCategories> = Vec::new();
+
+    if user_categories.len() == 0 {
+        //Do nothing!
+    }
+    else {
+        for category in user_categories {
+            if category.archived == false {
+                str_categories.push(StrCategories {
+                    str_category_id: category.id,
+                    str_category_name: category.name,
+                    str_category_descrip: category.descrip,
+                    archived: category.archived,
+                });
+            }
+        }
+    }
+
+    let expense = get_expense_by_expense_id(&int_expense_id);
+
+    if expense.user_id != int_user_id {
+        /*
+        The user id associated with this expense does not match the user_id of this authenticated user
+        */
+        let context = UnauthorizedAccessContext {
+            title: String::from("Edit Expense"),
+            authenticated: true,
+            authorized: false,
+            flash_class: String::from(flash_class),
+            flash_msg: String::from(flash_message),
+        };
+        return Template::render("expense_edit", &context);
+    }
+    else {
+        let context = EditExpenseContext {
+            title: String::from("Edit Expense"),
+            authenticated: true,
+            authorized: true,
+            flash_class: String::from(flash_class),
+            flash_msg: String::from(flash_message),
+            total_categories: num_of_categories,
+            str_categories: str_categories,
+            expense_id: expense.id.to_string(),
+            category_id: expense.category_id.to_string(),
+            expense_name: expense.name,
+            expense_amount: expense.amount,
+
+        };
+        return Template::render("expense_edit", &context);
+    }
+}
+
+#[get("/expense/edit/<expense_id>", rank = 2)]
+fn expense_edit_get_nonuser(expense_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let _expense_id = expense_id;
+    return not_logged_in("/login");
+}
+
+/*
+EDIT EXPENSE POST
+*/
+#[post("/expense/edit/<expense_id>", rank = 1, data="<expenseform>")]
+fn expense_edit_post(user_id_struct: IsUser, expense_id: String, expenseform: Form<ExpenseForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let expense_form = &expenseform.get();
+    let category_id = expense_form.category_id.to_string();
+    let expense_name = expense_form.name.to_string();
+    let expense_amount = expense_form.amount.to_string();
+    let int_expense_id: i32 = expense_id.parse().expect("unable to parse");
+    let int_category_id: i32 = category_id.parse().expect("unable to parse");
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("unable to parse");
+
+    let expense = get_expense_by_expense_id(&int_expense_id);
+
+    if expense.user_id != int_user_id {
+        return Err(Flash::error(Redirect::to("/expense"), "You cannot edit an expense that does not belong to you!".to_string()));
+    }
+    else {
+        if expense_name == "".to_string() {
+            return Err(Flash::error(Redirect::to("/expense"), "Expense name cannot be blank".to_string()));
+        }
+        else if expense_amount == "".to_string() {
+            return Err(Flash::error(Redirect::to("/expense"), "Expense amount cannot be blank".to_string()));
+        }
+        else {
+            //TODO: update expense in DB
+            update_expense(&int_expense_id, &int_category_id, &expense_name, &expense_amount);
+            return Ok(Flash::success(Redirect::to("/expense"), "Expense updated successfully!".to_string()));
+        }
+    }
+}
+
+#[post("/expense/edit/<expense_id>", rank = 2)]
+fn expense_edit_post_nonuser(expense_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let _expense_id = expense_id;
+    return not_logged_in("/login");
+}
+
+#[get("/expense/delete/<expense_id>", rank = 1)]
+fn expense_delete_get(user_id_struct: IsUser, expense_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("failed to parse");
+    let int_expense_id: i32 = expense_id.parse().expect("failed to parse");
+
+    let expense = get_expense_by_expense_id(&int_expense_id);
+
+    if expense.user_id != int_user_id {
+        return Err(Flash::error(Redirect::to("/expense"), "You attempted to delete an expense that is not associated with your account!".to_string()));
+    }
+    else {
+        let _deleted = delete_expense_by_id(&int_expense_id);
+        return Ok(Flash::success(Redirect::to("/expense"), "Expense successfully deleted!".to_string()));
+    }
+}
+
+#[get("/expense/delete/<expense_id>", rank = 2)]
+fn expense_delete_get_nonuser(expense_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let _expense_id = expense_id;
+    return not_logged_in("/login");
+}
+
+/*
 LOGOUT GET
 */
 #[get("/logout", rank = 1)]
@@ -646,6 +781,12 @@ fn rocket() -> rocket::Rocket {
         expense_get_nonuser,
         expense_post,
         expense_post_nonuser,
+        expense_edit_get,
+        expense_edit_get_nonuser,
+        expense_edit_post,
+        expense_edit_post_nonuser,
+        expense_delete_get,
+        expense_delete_get_nonuser,
     ])
     .attach(Template::fairing())
 }

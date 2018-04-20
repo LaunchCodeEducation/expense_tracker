@@ -81,6 +81,22 @@ pub struct ExpenseContext {
 }
 
 #[derive(Serialize)]
+pub struct EditExpenseContext {
+    pub title: String,
+    pub authenticated: bool,
+    pub authorized: bool,
+    pub flash_class: String,
+    pub flash_msg: String,
+    pub total_categories: usize,
+    pub str_categories: Vec<StrCategories>,
+    pub expense_id: String,
+    pub category_id: String,
+    pub expense_name: String,
+    pub expense_amount: String,
+    //pub str_categories: Vec<StrCategories>,
+}
+
+#[derive(Serialize)]
 pub struct StrExpenses {
     pub str_expense_id: i32,
     pub str_category_id: i32,
