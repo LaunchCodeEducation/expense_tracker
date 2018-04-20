@@ -3,6 +3,7 @@
 {% block body_content %}
     {% if authorized %}
         <h3>Please enter the expense id, and hit the delete button to confirm deletion</h3>
+        <h3>Expense ID: {{ expense_id }}</h3>
         <form action='/expense/delete/{{ expense_id }}' method="POST">
             <div class="row">
                 <div class="small-2 columns">
