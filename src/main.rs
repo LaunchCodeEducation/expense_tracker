@@ -359,6 +359,7 @@ fn category_edit_get(user_id_struct: IsUser, flash: Option<FlashMessage>, catego
 
 #[get("/category/edit/<category_id>", rank = 2)]
 fn category_edit_get_nonuser(category_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let _category_id = category_id;
     return not_logged_in("/login");
 }
 
@@ -387,7 +388,7 @@ fn category_edit_post(user_id_struct: IsUser, category_id: String, categoryform:
             return Err(Flash::error(Redirect::to("/category"), "Category description cannot be blank".to_string()))
         }
         else {
-            //TODO: update Category object, update Category in DB
+            //DONE: update Category in DB
             update_category(&int_category_id, &category_name, &category_descrip);
             return Ok(Flash::success(Redirect::to("/category"), "Category updated successfully!".to_string()));
         } 
@@ -397,6 +398,7 @@ fn category_edit_post(user_id_struct: IsUser, category_id: String, categoryform:
 
 #[post("/category/edit/<category_id>", rank = 2)]
 fn category_edit_post_nonuser(category_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let _category_id = category_id;
     return not_logged_in("/login");
 }
 
@@ -422,6 +424,7 @@ fn category_archive_get(user_id_struct: IsUser, category_id: String) -> Result<F
 
 #[get("/category/archive/<category_id>", rank = 2)]
 fn category_archive_get_nonuser(category_id: String)  -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let _category_id = category_id;
     return not_logged_in("/login");
 }
 
@@ -444,6 +447,7 @@ fn category_unarchive_get(user_id_struct: IsUser, category_id: String) -> Result
 
 #[get("/category/unarchive/<category_id>", rank = 2)]
 fn category_unarchive_get_nonuser(category_id: String)  -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let _category_id = category_id;
     return not_logged_in("/login");
 }
 

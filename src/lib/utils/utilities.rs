@@ -9,9 +9,12 @@ pub fn improper_user_access(route: &str) -> Result<Flash<Redirect>, Flash<Redire
     return Err(Flash::error(Redirect::to(route), "You are already logged in! Logout to login, or create a new account."));
 }
 
+/*
+I may need this in the future so I'm holding onto it for now
 pub fn unauthorized_access(route: &str) -> Result<Flash<Redirect>, Flash<Redirect>> {
     return Err(Flash::error(Redirect::to(route), "You do not have permission to access that resource."));
 }
+*/
 
 pub fn flash_message_breakdown(flash: Option<FlashMessage>) -> (String, String) {
     // Access the flash message result so it can be added to the context

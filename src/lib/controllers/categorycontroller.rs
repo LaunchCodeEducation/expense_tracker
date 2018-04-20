@@ -23,7 +23,6 @@ pub fn create_category<'a>(user_id: &'a i32, name: &'a str, descrip: &'a str) ->
 }
 
 pub fn update_category<'a>(category_id: &'a i32, n: &'a str, d: &'a str) -> Category {
-    use lib::schema::categories;
     use lib::schema::categories::columns::id;
     use lib::schema::categories::columns::name;
     use lib::schema::categories::columns::descrip;
@@ -42,9 +41,8 @@ pub fn update_category<'a>(category_id: &'a i32, n: &'a str, d: &'a str) -> Cate
         .expect("error updating category")
 }
 
-//TODO: archive_category function it should be very similar to update_category, but only changes the archived column
+//DONE: archive_category function it should be very similar to update_category, but only changes the archived column
 pub fn archive_category(category_id: &i32) -> Category {
-    use lib::schema::categories;
     use lib::schema::categories::columns::id;
     use lib::schema::categories::columns::archived;
     use lib::schema::categories::dsl::*;
@@ -59,9 +57,8 @@ pub fn archive_category(category_id: &i32) -> Category {
         .expect("error archiving category")
 }
 
-//TODO: unarchive_category function it should be very similar to arhive_category
+//DONE: unarchive_category function it should be very similar to arhive_category
 pub fn unarchive_category(category_id: &i32) -> Category {
-    use lib::schema::categories;
     use lib::schema::categories::columns::id;
     use lib::schema::categories::columns::archived;
     use lib::schema::categories::dsl::*;
@@ -123,8 +120,4 @@ pub fn get_categories_by_user_id<'a>(input_id: &'a i32) -> Vec<Category> {
         let user_categories: Vec<Category> = Vec::new();
         return user_categories;
     }
-
-
-    //let mut user_categories: Vec<Category> = Vec::new();
-
 }

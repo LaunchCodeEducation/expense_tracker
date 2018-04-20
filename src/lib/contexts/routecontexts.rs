@@ -57,6 +57,7 @@ pub struct StrCategories {
     pub archived: bool,
 }
 
+/*
 #[derive(Serialize)]
 pub struct StrArchivedCategories {
     pub str_category_id: i32,
@@ -64,6 +65,7 @@ pub struct StrArchivedCategories {
     pub str_category_descrip: String,
     pub archived: bool,
 }
+*/
 
 #[derive(Serialize)]
 pub struct ExpenseContext {
