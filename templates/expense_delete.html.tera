@@ -1,0 +1,29 @@
+{% extends "menu" %}
+
+{% block body_content %}
+    {% if authorized %}
+        <h3>Please enter the expense id, and hit the delete button to confirm deletion</h3>
+        <form action='/expense/delete/{{ expense_id }}' method="POST">
+            <div class="row">
+                <div class="small-2 columns">
+                    <span class="prefix">Expense Id</span>
+                </div>
+                <div class="small-10 columns">
+                    <input type="text" placeholder="{{ expense_id }}" name="delete_expense_id"/>
+                </div>
+            </div>
+            <div class="row">
+                <div class="small-2 columns">
+                    {# nothing #}
+                </div>
+                <div class="small-10 columns">
+                    <a href="/expense" class="button secondary">Cancel</a>
+                    <input class="button warning" type="submit" value="DELETE" />
+                </div>
+            </div>
+        </form>
+    {% else %}
+        <h5>You have requested to delete an expense that is not associated with your account.</h5>
+        <h6>Click <a href="/home">here to go home</a> or select an option from the menu above.</h6>
+    {% endif %}
+{% endblock body_content %}

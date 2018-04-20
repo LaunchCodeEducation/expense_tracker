@@ -31,3 +31,8 @@ pub struct ExpenseForm {
     pub name: String,
     pub amount: String,
 }
+
+#[derive(FromForm)]
+pub struct ExpenseDeleteForm {
+    pub delete_expense_id: String,
+}

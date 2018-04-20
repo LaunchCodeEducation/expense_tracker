@@ -30,8 +30,8 @@ use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category, archive_category, unarchive_category};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id, get_expense_by_expense_id, update_expense, delete_expense_by_id};
 
-use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext, EditExpenseContext};
-use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm};
+use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext, EditExpenseContext, DeleteExpenseContext};
+use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm, ExpenseDeleteForm};
 
 use lib::utils::utilities::{not_logged_in, improper_user_access, flash_message_breakdown};
 
@@ -666,20 +666,40 @@ fn expense_edit_post_nonuser(expense_id: String) -> Result<Flash<Redirect>, Flas
     return not_logged_in("/login");
 }
 
+/*
+EXPENSE DELETE GET
+*/
 #[get("/expense/delete/<expense_id>", rank = 1)]
-fn expense_delete_get(user_id_struct: IsUser, expense_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+fn expense_delete_get(user_id_struct: IsUser, expense_id: String, flash: Option<FlashMessage>) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_class = message.0;
     let str_user_id = user_id_struct.0;
-    let int_user_id: i32 = str_user_id.parse().expect("failed to parse");
-    let int_expense_id: i32 = expense_id.parse().expect("failed to parse");
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+    let int_expense_id: i32 = expense_id.parse().expect("Failed to parse");
 
     let expense = get_expense_by_expense_id(&int_expense_id);
 
     if expense.user_id != int_user_id {
-        return Err(Flash::error(Redirect::to("/expense"), "You attempted to delete an expense that is not associated with your account!".to_string()));
+        let context = UnauthorizedAccessContext {
+            title: String::from("Edit Category"),
+            authenticated: true,
+            authorized: false,
+            flash_class: String::from(flash_class),
+            flash_msg: String::from(flash_message),
+        };
+        return Template::render("expense_delete", &context);
     }
     else {
-        let _deleted = delete_expense_by_id(&int_expense_id);
-        return Ok(Flash::success(Redirect::to("/expense"), "Expense successfully deleted!".to_string()));
+        let context = DeleteExpenseContext {
+            title: String::from("Delete Expense"),
+            authenticated: true,
+            authorized: true,
+            flash_class: String::from(flash_class),
+            flash_msg: String::from(flash_message),
+            expense_id: int_expense_id,
+        };
+        return Template::render("expense_delete", &context);
     }
 }
 
@@ -689,6 +709,41 @@ fn expense_delete_get_nonuser(expense_id: String) -> Result<Flash<Redirect>, Fla
     return not_logged_in("/login");
 }
 
+/*
+EXPENSE DELETE POST
+*/
+//ExpenseDeleteForm
+#[post("/expense/delete/<expense_id>", rank = 1, data = "<expensedeleteform>")]
+fn expense_delete_post(user_id_struct: IsUser, expense_id: String, expensedeleteform: Form<ExpenseDeleteForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("failed to parse");
+    let int_expense_id: i32 = expense_id.parse().expect("failed to parse");
+
+    let expense_delete_form = &expensedeleteform.get();
+    let expense_id = expense_delete_form.delete_expense_id.to_string();
+
+    let expense = get_expense_by_expense_id(&int_expense_id);
+    println!("Expense.user_id: {}", expense.user_id.to_string());
+    println!("expense_id: {}", expense_id);
+    if expense.user_id != int_user_id {
+        return Err(Flash::error(Redirect::to("/expense"), "You attempted to delete an expense that is not associated with your account!".to_string()));
+    }
+    else {
+        if expense.id.to_string() != expense_id {
+            return Err(Flash::error(Redirect::to("/expense"), "Expense IDs do not match!"));
+        }
+        else {
+            let _deleted = delete_expense_by_id(&int_expense_id);
+            return Ok(Flash::success(Redirect::to("/expense"), "Expense successfully deleted!".to_string()));
+        }
+        
+    }
+}
+
+#[post("/expense/delete/<expense_id>", rank = 2)]
+fn expense_delete_post_nonuser(expense_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
 /*
 LOGOUT GET
 */
@@ -787,6 +842,8 @@ fn rocket() -> rocket::Rocket {
         expense_edit_post_nonuser,
         expense_delete_get,
         expense_delete_get_nonuser,
+        expense_delete_post,
+        expense_delete_post_nonuser,
     ])
     .attach(Template::fairing())
 }

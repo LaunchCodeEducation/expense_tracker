@@ -97,6 +97,16 @@ pub struct EditExpenseContext {
 }
 
 #[derive(Serialize)]
+pub struct DeleteExpenseContext {
+    pub title: String,
+    pub authenticated: bool,
+    pub authorized: bool,
+    pub flash_class: String,
+    pub flash_msg: String,
+    pub expense_id: i32,
+}
+
+#[derive(Serialize)]
 pub struct StrExpenses {
     pub str_expense_id: i32,
     pub str_category_id: i32,
