@@ -110,6 +110,7 @@ pub struct DeleteExpenseContext {
 pub struct StrExpenses {
     pub str_expense_id: i32,
     pub str_category_id: i32,
+    pub str_category_name: String,
     pub str_created: String,
     pub str_name: String,
     pub str_amount: String,
@@ -131,4 +132,18 @@ pub struct UnauthorizedAccessContext {
     pub authorized: bool,
     pub flash_class: String,
     pub flash_msg: String,
+}
+
+#[derive(Serialize)]
+pub struct ReportContext {
+    pub title: String,
+    pub authenticated: bool,
+    pub authorized: bool,
+    pub flash_class: String,
+    pub flash_msg: String,
+    pub str_categories: Vec<StrCategories>,
+    pub total_categories: usize,
+    pub str_expenses: Vec<StrExpenses>,
+    pub total_expenses: usize,
+    pub total_expense_amount: f32,
 }

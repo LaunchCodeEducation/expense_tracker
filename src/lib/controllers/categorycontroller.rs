@@ -121,3 +121,8 @@ pub fn get_categories_by_user_id<'a>(input_id: &'a i32) -> Vec<Category> {
         return user_categories;
     }
 }
+
+pub fn get_category_name_by_category_id<'a>(input_id: &'a i32) -> String {
+    let category = get_category_by_category_id(&input_id);
+    return category.name;
+}

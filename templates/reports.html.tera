@@ -1,0 +1,41 @@
+{% extends "menu" %}
+
+{% block body_content %}
+
+<h3>Reports</h3>
+{# Form that changes the bottom half of the page
+They can select a category, and a time (all, a year, or a specific month)
+they will then click submit and the post request
+ #}
+<h5>All Expenses</h5>
+<table>
+    <thead>
+        <tr>
+            <th>Created</th>
+            <th>Category</th>
+            <th>Expense Name</th>
+            <th>Expense Amount</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    </thead>
+    {% if total_expenses == 0 %}
+    <tr>
+        <td>No <a href='/expense'>expenses</a> yet</td>
+    </tr>
+    {% else %}
+        {% for expense in str_expenses %}
+            <tr>
+                <td>{{ expense.str_created }}</td>
+                <td>{{ expense.str_category_name }}
+                <td>{{ expense.str_name }}</td>
+                <td>{{ expense.str_amount }}</td>
+                <td><a href='/expense/edit/{{ expense.str_expense_id }}'>Click to Edit</a></td>
+                <td><a href='/expense/delete/{{ expense.str_expense_id }}'>Click to delete</a></td>
+            </tr>
+        {% endfor %}
+    {% endif %}
+</table>
+<h5>Total Expenses: {{ total_expense_amount }}</h5>
+
+{% endblock body_content%}

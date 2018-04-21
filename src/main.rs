@@ -27,10 +27,10 @@ mod lib;
 use lib::models::category::Category;
 use lib::models::expense::Expense;
 use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
-use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category, archive_category, unarchive_category};
+use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category, archive_category, unarchive_category, get_category_name_by_category_id};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id, get_expense_by_expense_id, update_expense, delete_expense_by_id};
 
-use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext, EditExpenseContext, DeleteExpenseContext};
+use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext, EditExpenseContext, DeleteExpenseContext, ReportContext};
 use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm, ExpenseDeleteForm};
 
 use lib::utils::utilities::{not_logged_in, improper_user_access, flash_message_breakdown};
@@ -485,23 +485,31 @@ fn expense_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template 
         }
     }
 
-    //TODO: Get last five expenses from user_id
+    //DONE: Get last five expenses from user_id
     //DONE: Get previous user expenses
     let user_expenses: Vec<Expense> = get_expenses_by_user_id(&int_user_id);
     let mut str_expenses: Vec<StrExpenses> = Vec::new();
     let num_of_expenses = user_expenses.len();
+    let mut count = 0;
     if user_expenses.len() > 0 {
         for expense in user_expenses {
             //println!("Expense Created: {:?}", expense.created);
+            if count > 4 {
+                break;
+            }
+            let mut int_category_id : i32 = expense.category_id;
             str_expenses.push(StrExpenses {
                 str_expense_id: expense.id,
                 str_category_id: expense.category_id,
+                str_category_name: get_category_name_by_category_id(&int_category_id),
                 str_created: expense.created,
                 str_name: expense.name,
                 str_amount: expense.amount,
             });
+            count = count + 1;
         }
     }
+
 
     let context = ExpenseContext {
         title: "Expense".to_string(),
@@ -744,6 +752,76 @@ fn expense_delete_post(user_id_struct: IsUser, expense_id: String, expensedelete
 fn expense_delete_post_nonuser(expense_id: String) -> Result<Flash<Redirect>, Flash<Redirect>> {
     return not_logged_in("/login");
 }
+
+/*
+REPORTS GET
+*/
+#[get("/reports", rank = 1)]
+fn reports_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_class = message.0;
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+
+    let mut str_categories = Vec::new();
+    let categories = get_categories_by_user_id(&int_user_id);
+
+    let total_categories = categories.len();
+    
+    for category in categories {
+        str_categories.push(StrCategories {
+            str_category_id: category.id,
+            str_category_name: category.name,
+            str_category_descrip: category.descrip,
+            archived: category.archived,
+        });
+    }
+    
+    
+    let mut str_expenses = Vec::new();
+    let mut total_expense_amount: f32 = 0.0;
+    let expenses = get_expenses_by_user_id(&int_user_id);
+
+    let total_expenses = expenses.len();
+
+    for expense in expenses {
+        let mut int_category_id : i32 = expense.category_id;
+        let new_amount: f32 = expense.amount.parse().expect("cound not parse");
+        total_expense_amount = total_expense_amount + new_amount;
+        str_expenses.push(StrExpenses {
+            str_expense_id: expense.id,
+            str_category_id: expense.category_id,
+            str_category_name: get_category_name_by_category_id(&int_category_id),
+            str_created: expense.created,
+            str_name: expense.name,
+            str_amount: expense.amount,
+        });
+    }
+    
+
+    let context = ReportContext {
+        title: String::from("Reports"),
+        authenticated: true,
+        authorized: true,
+        flash_class: flash_class.to_string(),
+        flash_msg: flash_message.to_string(),
+        str_categories: str_categories,
+        total_categories: total_categories,
+        str_expenses: str_expenses,
+        total_expenses: total_expenses,
+        total_expense_amount: total_expense_amount,
+
+    };
+
+    return Template::render("reports", &context);
+}
+
+#[get("/reports", rank = 2)]
+fn reports_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
 /*
 LOGOUT GET
 */
@@ -844,6 +922,8 @@ fn rocket() -> rocket::Rocket {
         expense_delete_get_nonuser,
         expense_delete_post,
         expense_delete_post_nonuser,
+        reports_get,
+        reports_get_nonuser,
     ])
     .attach(Template::fairing())
 }
