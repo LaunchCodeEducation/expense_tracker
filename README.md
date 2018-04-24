@@ -19,3 +19,7 @@ The Expense Tracker is a web application that allows users to:
 - Diesel
 - Postgres
 - Foundation CSS
+
+## License
+
+[GNU General Public License v3](LICENSE)
