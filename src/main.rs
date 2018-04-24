@@ -26,12 +26,12 @@ use std::string::String;
 mod lib;
 use lib::models::category::Category;
 use lib::models::expense::Expense;
-use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id};
+use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id, update_user_email};
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category, archive_category, unarchive_category, get_category_name_by_category_id};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id, get_expense_by_expense_id, update_expense, delete_expense_by_id};
 
 use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext, EditExpenseContext, DeleteExpenseContext, ReportContext};
-use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm, ExpenseDeleteForm};
+use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm, ExpenseDeleteForm, ChangeEmailForm};
 
 use lib::utils::utilities::{not_logged_in, improper_user_access, flash_message_breakdown};
 
@@ -823,6 +823,73 @@ fn reports_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
 }
 
 /*
+Change Email GET
+*/
+#[get("/changeemail", rank = 1)]
+fn changeemail_get(user_id_struct: IsUser, flash: Option<FlashMessage>) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_class = message.0;
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+
+    let context = HomeContext {
+        title: String::from("Change Email"),
+        authenticated: true,
+        flash_class: flash_class.to_string(),
+        flash_msg: flash_message.to_string(),
+        user_email: String::from(""),
+    };
+
+    return Template::render("change_email", &context);
+}
+
+#[get("/changeemail", rank = 2)]
+fn changeemail_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
+/*
+CHANGE EMAIL POST
+*/
+#[post("/changeemail", rank = 1, data = "<changeemailform>")]
+fn changeemail_post(user_id_struct: IsUser, changeemailform: Form<ChangeEmailForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    //let message = flash_message_breakdown(flash);
+    //let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    //let flash_class = message.0;
+
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Not a number!");
+    
+    let change_email_form = &changeemailform.get();
+    let current_email = change_email_form.current_email.to_string();
+
+    let user = get_user_by_id(&int_user_id);
+
+    if current_email != user.email.to_string() {
+        return Err(Flash::error(Redirect::to("/changeemail"), "Current email does not match email associated with user".to_string()));
+    }
+    else {
+        let new_email = change_email_form.new_email.to_string();
+        let confirm_email = change_email_form.confirm_email.to_string();
+
+        if new_email != confirm_email {
+            return Err(Flash::error(Redirect::to("/changeemail"), "New email and confirm email do not match".to_string()));
+        }
+        else {
+            update_user_email(&int_user_id, &new_email);
+            return Ok(Flash::success(Redirect::to("/changeemail"), "Email updated successfully!".to_string()));
+        }
+    }
+}
+
+#[post("/changeemail", rank = 2)]
+fn changeemail_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
+
+/*
 LOGOUT GET
 */
 #[get("/logout", rank = 1)]
@@ -924,6 +991,10 @@ fn rocket() -> rocket::Rocket {
         expense_delete_post_nonuser,
         reports_get,
         reports_get_nonuser,
+        changeemail_get,
+        changeemail_get_nonuser,
+        changeemail_post,
+        changeemail_post_nonuser,
     ])
     .attach(Template::fairing())
 }

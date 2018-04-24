@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use diesel::insert_into;
+use diesel::{insert_into, update};
 
 use lib::models::user::{User, NewUser};
 use lib::db_manager::establish_connection;
@@ -73,4 +73,20 @@ pub fn get_user_by_id<'a>(input_id: &'a i32) -> User {
             password: String::from("")
         }
     }
+}
+
+pub fn update_user_email<'a>(input_id: &'a i32, new_email: &'a str) -> User {
+    use lib::schema::users::columns::email;
+    use lib::schema::users::dsl::*;
+
+    let conn = establish_connection();
+
+    let target = users.filter(id.eq(input_id));
+
+    update(target)
+        .set(
+            email.eq(new_email)
+        )
+        .get_result(&conn)
+        .expect("Error updating user")
 }

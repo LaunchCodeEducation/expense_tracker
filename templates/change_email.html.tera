@@ -1,0 +1,41 @@
+{% extends "menu" %}
+
+{% block body_content %}
+<h3>Change Email</h3>
+<form action='/changeemail' method="POST">
+    <div class="row">
+        <div class="small-2 columns">
+            <span class="prefix">Current Email</span>
+        </div>
+        <div class="small-10 columns">
+            <input type="text" name="current_email" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="small-2 columns">
+            <span class="prefix">New Email</span>
+        </div>
+        <div class="small-10 columns">
+            <input type="text" name="new_email" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="small-2 columns">
+            <span class="prefix">Confirm Email</span>
+        </div>
+        <div class="small-10 columns">
+            <input type="text" name="confirm_email" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="small-2 columns">
+
+        </div>
+        <div class="small-10 columns">
+            <a href="/home" class="button secondary">Cancel</a>
+            <input class="button warning" type="submit" value="CHANGE EMAIL" />
+        </div>
+    </div>
+
+</form>
+{% endblock body_content%}

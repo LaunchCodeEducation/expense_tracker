@@ -36,3 +36,10 @@ pub struct ExpenseForm {
 pub struct ExpenseDeleteForm {
     pub delete_expense_id: String,
 }
+
+#[derive(FromForm)]
+pub struct ChangeEmailForm {
+    pub current_email: String,
+    pub new_email: String,
+    pub confirm_email: String,
+}

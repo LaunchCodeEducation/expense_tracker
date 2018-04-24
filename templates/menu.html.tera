@@ -30,6 +30,8 @@
                         <li><a href="/login">Login</a></li>
                     <!-- if logged in -->
                     {% else %}
+                        <li><a href="/changeemail">Change Email</a>
+                        <li><a href="/changepassword">Change Password</a>
                         <li><a href="/logout">Logout</a></li>
                     {% endif %}
                 </ul>
