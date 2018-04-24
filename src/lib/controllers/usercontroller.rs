@@ -90,3 +90,19 @@ pub fn update_user_email<'a>(input_id: &'a i32, new_email: &'a str) -> User {
         .get_result(&conn)
         .expect("Error updating user")
 }
+
+pub fn update_user_password<'a>(input_id: &'a i32, new_password: &'a str) -> User {
+    use lib::schema::users::columns::password;
+    use lib::schema::users::dsl::*;
+
+    let conn = establish_connection();
+
+    let target = users.filter(id.eq(input_id));
+
+    update(target)
+        .set(
+            password.eq(new_password)
+        )
+        .get_result(&conn)
+        .expect("Error updating password")
+}

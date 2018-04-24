@@ -26,12 +26,12 @@ use std::string::String;
 mod lib;
 use lib::models::category::Category;
 use lib::models::expense::Expense;
-use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id, update_user_email};
+use lib::controllers::usercontroller::{create_user, get_user_by_email, get_user_by_id, update_user_email, update_user_password};
 use lib::controllers::categorycontroller::{create_category, get_categories_by_user_id, get_category_by_category_id, update_category, archive_category, unarchive_category, get_category_name_by_category_id};
 use lib::controllers::expensecontroller::{create_expense, get_expenses_by_user_id, get_expense_by_expense_id, update_expense, delete_expense_by_id};
 
 use lib::contexts::routecontexts::{RegisterContext, LoginContext, CategoryContext, ExpenseContext, StrCategories, StrExpenses, HomeContext, EditCategoryContext, UnauthorizedAccessContext, EditExpenseContext, DeleteExpenseContext, ReportContext};
-use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm, ExpenseDeleteForm, ChangeEmailForm};
+use lib::forms::routeforms::{RegisterForm, LoginForm, CategoryForm, ExpenseForm, ExpenseDeleteForm, ChangeEmailForm, ChangePasswordForm};
 
 use lib::utils::utilities::{not_logged_in, improper_user_access, flash_message_breakdown};
 
@@ -661,7 +661,7 @@ fn expense_edit_post(user_id_struct: IsUser, expense_id: String, expenseform: Fo
             return Err(Flash::error(Redirect::to("/expense"), "Expense amount cannot be blank".to_string()));
         }
         else {
-            //TODO: update expense in DB
+            //DONE: update expense in DB
             update_expense(&int_expense_id, &int_category_id, &expense_name, &expense_amount);
             return Ok(Flash::success(Redirect::to("/expense"), "Expense updated successfully!".to_string()));
         }
@@ -888,6 +888,67 @@ fn changeemail_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
     return not_logged_in("/login");
 }
 
+/*
+Change Password GET
+*/
+#[get("/changepassword", rank = 1)]
+fn changepassword_get(user_id_struct: IsUser, flash:Option<FlashMessage>) -> Template {
+    let message = flash_message_breakdown(flash);
+    let flash_message = message.1.get(1..).unwrap_or_else(|| "no class");
+    let flash_class = message.0;
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Failed to parse");
+
+    let context = HomeContext {
+        title: String::from("Change Email"),
+        authenticated: true,
+        flash_class: flash_class.to_string(),
+        flash_msg: flash_message.to_string(),
+        user_email: String::from(""),
+    };
+
+    return Template::render("change_password", &context);
+}
+
+#[get("/changepassword", rank = 2)]
+fn changepassword_get_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
+
+/*
+Change password POST
+*/
+#[post("/changepassword", rank = 1, data = "<changepasswordform>")]
+fn changepassword_post(user_id_struct: IsUser, changepasswordform: Form<ChangePasswordForm>) -> Result<Flash<Redirect>, Flash<Redirect>> {
+    let str_user_id = user_id_struct.0;
+    let int_user_id: i32 = str_user_id.parse().expect("Not a number!");
+    
+    let change_password_form = &changepasswordform.get();
+    let current_password = change_password_form.current_password.to_string();
+
+    let user = get_user_by_id(&int_user_id);
+
+    if !verify(&current_password, &user.password).expect("error") {
+        return Err(Flash::error(Redirect::to("/changepassword"), "Password is incorrect!".to_string()));
+    }
+    else {
+        let new_password = change_password_form.new_password.to_string();
+        let confirm_password = change_password_form.confirm_password.to_string();
+        if new_password != confirm_password {
+            return Err(Flash::error(Redirect::to("/changepassword"), "Passwords do not match!".to_string()));
+        }
+        else {
+            let hashed = hash(&new_password.to_string(), 7);
+            update_user_password(&int_user_id, &hashed.expect("error with hashed password"));
+            return Ok(Flash::success(Redirect::to("/changepassword"), "Password updated!".to_string()));
+        }
+    }
+}
+
+#[post("/changepassword", rank = 2)]
+fn changepassword_post_nonuser() -> Result<Flash<Redirect>, Flash<Redirect>> {
+    return not_logged_in("/login");
+}
 
 /*
 LOGOUT GET
@@ -995,6 +1056,10 @@ fn rocket() -> rocket::Rocket {
         changeemail_get_nonuser,
         changeemail_post,
         changeemail_post_nonuser,
+        changepassword_get,
+        changepassword_get_nonuser,
+        changepassword_post,
+        changepassword_post_nonuser,
     ])
     .attach(Template::fairing())
 }

@@ -43,3 +43,10 @@ pub struct ChangeEmailForm {
     pub new_email: String,
     pub confirm_email: String,
 }
+
+#[derive(FromForm)]
+pub struct ChangePasswordForm {
+    pub current_password: String,
+    pub new_password: String,
+    pub confirm_password: String,
+}
